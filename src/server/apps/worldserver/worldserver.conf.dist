@@ -2142,11 +2142,11 @@ WaterBreath.Timer = 180000
 #
 #    EnableLowLevelRegenBoost
 #        Description: Greatly increase Health and Mana regen rates for players under level 15 (Added in patch 3.3)
-#        Default:     1 - Enabled
-#                     0 - Disabled
+#        Default:     0 - Disabled (fork: vanilla-like low-level regen, see data/sql/updates/db_world/2026_10_18_00.sql)
+#                     1 - Enabled (blizzlike 3.3)
 #
 
-EnableLowLevelRegenBoost = 1
+EnableLowLevelRegenBoost = 0
 
 #
 #    Rate.MoveSpeed.Player
