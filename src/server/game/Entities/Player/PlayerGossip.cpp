@@ -71,7 +71,7 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                     canTalk = false;                       // added in special mode
                     break;
                 case GOSSIP_OPTION_SPIRITHEALER:
-                    if (!isDead())
+                    if (!isDead() || sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
                         canTalk = false;
                     break;
                 case GOSSIP_OPTION_VENDOR:

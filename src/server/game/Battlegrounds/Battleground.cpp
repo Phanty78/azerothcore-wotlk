@@ -384,6 +384,9 @@ inline void Battleground::_ProcessResurrect(uint32 diff)
                     Player* player = ObjectAccessor::FindPlayer(guid);
                     if (!player)
                         continue;
+                    // Death.Hardcore: BG spirit guides never resurrect
+                    if (sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
+                        continue;
 
                     if (!sh && player->IsInWorld())
                     {

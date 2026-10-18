@@ -259,6 +259,10 @@ void WorldSession::HandleSpiritHealerActivateOpcode(WorldPacket& recvData)
 
 void WorldSession::SendSpiritResurrect()
 {
+    // Death.Hardcore: spirit healers never resurrect
+    if (sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
+        return;
+
     _player->ResurrectPlayer(0.5f, true);
 
     float durabilityLossOnSpiritResurrect = sWorld->getRate(RATE_DURABILITY_LOSS_ON_SPIRIT_RESURRECT) / 100.0f;

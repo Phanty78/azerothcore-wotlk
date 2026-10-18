@@ -519,6 +519,7 @@ enum ServerConfigs
 
     CONFIG_CAIS_ENABLED,
 
+    CONFIG_DEATH_HARDCORE,
     MAX_NUM_SERVER_CONFIGS
 };
 
