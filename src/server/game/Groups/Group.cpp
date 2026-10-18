@@ -453,7 +453,7 @@ bool Group::AddMember(Player* player, uint8 roles /* = 0 */)
         bool groupFound = false;
         for (; subGroup < MAX_RAID_SUBGROUPS; ++subGroup)
         {
-            if (m_subGroupsCounts[subGroup] < MAXGROUPSIZE)
+            if (m_subGroupsCounts[subGroup] < MAX_RAID_SUBGROUP_SIZE)
             {
                 groupFound = true;
                 break;
@@ -616,7 +616,7 @@ void Group::AddMemberWithGuid(ObjectGuid guid)
         bool groupFound = false;
         for (; subGroup < MAX_RAID_SUBGROUPS; ++subGroup)
         {
-            if (m_subGroupsCounts[subGroup] < MAXGROUPSIZE)
+            if (m_subGroupsCounts[subGroup] < MAX_RAID_SUBGROUP_SIZE)
             {
                 groupFound = true;
                 break;
@@ -2025,7 +2025,8 @@ bool Group::SameSubGroup(Player const* member1, Player const* member2) const
     if (member1->GetGroup() != this || member2->GetGroup() != this)
         return false;
     else
-        return member1->GetSubGroup() == member2->GetSubGroup();
+        // Xinef: a non-raid group is a single logical party (a 6-member party spans two raid subgroups)
+        return !isRaidGroup() || member1->GetSubGroup() == member2->GetSubGroup();
 }
 
 // Allows setting sub groups both for online or offline members
@@ -2604,12 +2605,13 @@ bool Group::SameSubGroup(ObjectGuid guid1, MemberSlot const* slot2) const
     member_citerator mslot1 = _getMemberCSlot(guid1);
     if (mslot1 == m_memberSlots.end() || !slot2)
         return false;
-    return (mslot1->group == slot2->group);
+    // Xinef: a non-raid group is a single logical party (a 6-member party spans two raid subgroups)
+    return !isRaidGroup() || (mslot1->group == slot2->group);
 }
 
 bool Group::HasFreeSlotSubGroup(uint8 subgroup) const
 {
-    return (m_subGroupsCounts && m_subGroupsCounts[subgroup] < MAXGROUPSIZE);
+    return (m_subGroupsCounts && m_subGroupsCounts[subgroup] < MAX_RAID_SUBGROUP_SIZE);
 }
 
 uint8 Group::GetMemberGroup(ObjectGuid guid) const

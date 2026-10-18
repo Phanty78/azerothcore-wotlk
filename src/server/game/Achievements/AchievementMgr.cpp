@@ -1178,7 +1178,9 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                         continue;
 
                     //FIXME: work only for instances where max == min for players
-                    if (map->ToInstanceMap()->GetMaxPlayers() != achievementCriteria->death_in_dungeon.manLimit)
+                    MapDifficulty const* deathMapDiff = map->ToInstanceMap()->GetMapDifficulty();
+                    uint32 deathMapMaxPlayers = (deathMapDiff && deathMapDiff->maxPlayers) ? deathMapDiff->maxPlayers : map->ToInstanceMap()->GetEntry()->maxPlayers;
+                    if (deathMapMaxPlayers != achievementCriteria->death_in_dungeon.manLimit)
                         continue;
                     SetCriteriaProgress(achievementCriteria, 1, PROGRESS_ACCUMULATE);
                     break;
@@ -1193,7 +1195,9 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                     if (!map || !map->IsDungeon())
                         continue;
 
-                    if (map->ToInstanceMap()->GetMaxPlayers() != achievementCriteria->complete_raid.groupSize)
+                    MapDifficulty const* raidMapDiff = map->ToInstanceMap()->GetMapDifficulty();
+                    uint32 raidMapMaxPlayers = (raidMapDiff && raidMapDiff->maxPlayers) ? raidMapDiff->maxPlayers : map->ToInstanceMap()->GetEntry()->maxPlayers;
+                    if (raidMapMaxPlayers != achievementCriteria->complete_raid.groupSize)
                         continue;
                     SetCriteriaProgress(achievementCriteria, 1, PROGRESS_ACCUMULATE);
                     break;

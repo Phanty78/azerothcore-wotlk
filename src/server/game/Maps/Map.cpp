@@ -2342,10 +2342,13 @@ MapDifficulty const* Map::GetMapDifficulty() const
 uint32 InstanceMap::GetMaxPlayers() const
 {
     MapDifficulty const* mapDiff = GetMapDifficulty();
-    if (mapDiff && mapDiff->maxPlayers)
-        return mapDiff->maxPlayers;
+    uint32 maxPlayers = (mapDiff && mapDiff->maxPlayers) ? mapDiff->maxPlayers : GetEntry()->maxPlayers;
 
-    return GetEntry()->maxPlayers;
+    // Une instance non-raid doit pouvoir accueillir une équipe complète
+    if (!IsRaid() && maxPlayers < MAXGROUPSIZE)
+        return MAXGROUPSIZE;
+
+    return maxPlayers;
 }
 
 uint32 InstanceMap::GetMaxResetDelay() const

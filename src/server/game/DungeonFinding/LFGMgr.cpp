@@ -722,7 +722,7 @@ namespace lfg
             }
             else if (grp)
             {
-                if (grp->GetMembersCount() > MAXGROUPSIZE)
+                if (grp->GetMembersCount() > lfg::LFG_GROUP_SIZE)
                     joinData.result = LFG_JOIN_TOO_MUCH_MEMBERS;
                 else
                 {
@@ -796,7 +796,7 @@ namespace lfg
             return;
 
          // Do not allow to change dungeon in the middle of a current dungeon
-        if (!isRaid && isContinue && grp->GetMembersCount() == 5)
+        if (!isRaid && isContinue && grp->GetMembersCount() == lfg::LFG_GROUP_SIZE)
         {
             dungeons.clear();
             dungeons.insert(GetDungeon(gguid));
@@ -1770,13 +1770,13 @@ namespace lfg
             // Xinef: Store amount of random players player grouped with
             if (group)
             {
-                SetRandomPlayersCount(pguid, group->GetMembersCount() >= MAXGROUPSIZE ? 0 : MAXGROUPSIZE - group->GetMembersCount());
+                SetRandomPlayersCount(pguid, group->GetMembersCount() >= lfg::LFG_GROUP_SIZE ? 0 : lfg::LFG_GROUP_SIZE - group->GetMembersCount());
                 oldGroupGUID = group->GetGUID();
                 if (group != grp)
                     group->RemoveMember(player->GetGUID());
             }
             else
-                SetRandomPlayersCount(pguid, MAXGROUPSIZE - 1);
+                SetRandomPlayersCount(pguid, lfg::LFG_GROUP_SIZE - 1);
 
             if (!grp)
             {

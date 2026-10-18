@@ -14744,7 +14744,7 @@ void Unit::GetPartyMembers(std::list<Unit*>& TagUnitMap)
             Player* Target = itr->GetSource();
 
             // IsHostileTo check duel and controlled by enemy
-            if (Target && Target->IsInMap(owner) && Target->GetSubGroup() == subgroup && !IsHostileTo(Target))
+            if (Target && Target->IsInMap(owner) && (!group->isRaidGroup() || Target->GetSubGroup() == subgroup) && !IsHostileTo(Target))
             {
                 if (Target->IsAlive())
                     TagUnitMap.push_back(Target);

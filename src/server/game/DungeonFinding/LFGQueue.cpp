@@ -266,7 +266,7 @@ namespace lfg
         ObjectGuid guid;
         uint64 addToFoundMask = 0;
 
-        for (uint8 i = 0; i < 5 && !(guid = check.guids[i]).IsEmpty() && numLfgGroups < 2 && numPlayers <= MAXGROUPSIZE; ++i)
+        for (uint8 i = 0; i < 5 && !(guid = check.guids[i]).IsEmpty() && numLfgGroups < 2 && numPlayers <= lfg::LFG_GROUP_SIZE; ++i)
         {
             LfgQueueDataContainer::iterator itQueue = QueueDataStore.find(guid);
             if (itQueue == QueueDataStore.end())
@@ -293,8 +293,8 @@ namespace lfg
         if (numLfgGroups > 1)
             return LFG_INCOMPATIBLES_MULTIPLE_LFG_GROUPS;
 
-        // Group with less that MAXGROUPSIZE members always compatible
-        if (!sLFGMgr->IsTesting() && check.size() == 1 && numPlayers < MAXGROUPSIZE)
+        // Group with less that LFG_GROUP_SIZE members always compatible
+        if (!sLFGMgr->IsTesting() && check.size() == 1 && numPlayers < lfg::LFG_GROUP_SIZE)
         {
             LfgQueueDataContainer::iterator itQueue = QueueDataStore.find(check.front());
             LfgRolesMap roles = itQueue->second.roles;
@@ -308,7 +308,7 @@ namespace lfg
             return LFG_COMPATIBLES_WITH_LESS_PLAYERS;
         }
 
-        if (numPlayers > MAXGROUPSIZE)
+        if (numPlayers > lfg::LFG_GROUP_SIZE)
             return LFG_INCOMPATIBLES_TOO_MUCH_PLAYERS;
 
         // If it's single group no need to check for duplicate players, ignores, bad roles or bad dungeons as it's been checked before joining
@@ -391,7 +391,7 @@ namespace lfg
         }
 
         // Enough players?
-        if (!sLFGMgr->IsTesting() && numPlayers != MAXGROUPSIZE)
+        if (!sLFGMgr->IsTesting() && numPlayers != lfg::LFG_GROUP_SIZE)
         {
             strGuids.addRoles(proposalRoles);
             for (uint8 i = 0; i < 5 && check.guids[i]; ++i)

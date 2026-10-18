@@ -468,7 +468,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 
                 WorldPacket data;
                 ChatHandler::BuildChatPacket(data, ChatMsg(type), Language(lang), sender, nullptr, msg);
-                group->BroadcastPacket(&data, false, group->GetMemberGroup(GetPlayer()->GetGUID()));
+                group->BroadcastPacket(&data, false, group->isRaidGroup() ? group->GetMemberGroup(GetPlayer()->GetGUID()) : -1);
             }
             break;
         case CHAT_MSG_GUILD:
