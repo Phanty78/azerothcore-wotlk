@@ -35,9 +35,10 @@ Laisse Tailscale **allumé pendant que tu joues** (icône dans la barre des tâc
 2. Connecte-toi avec l'identifiant et le mot de passe que je t'ai donnés, choisis le royaume
    **AzerothCore** (il doit apparaître **en ligne**), crée ton personnage et entre dans le monde.
 
-⚠️ **La mort est définitive sur ce serveur.** Une fois ton personnage tué, il reste un fantôme :
-ni esprit guérisseur, ni récupération de cadavre, ni résurrection par un autre joueur.
-Seul un administrateur peut le réanimer.
+⚠️ **La mort est définitive sur ce serveur.** Une fois ton personnage tué, il devient un
+fantôme bloqué à jamais à l'endroit de sa mort : ni esprit guérisseur, ni récupération de
+cadavre, ni résurrection par un autre joueur. Ta mort est annoncée à tout le serveur.
+Seul un administrateur peut te réanimer. Vérifie ton état avec `.hardcore status`.
 
 *Si la liste des royaumes reste vide ou si la machine du serveur n'apparaît pas dans Tailscale :
 vérifie que Tailscale affiche bien « Connected », puis préviens-moi.*

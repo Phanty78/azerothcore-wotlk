@@ -658,10 +658,6 @@ void WorldSession::HandleReclaimCorpseOpcode(WorldPacket& recv_data)
     if (!corpse->IsInMap(_player) || !corpse->IsWithinDist(_player, CORPSE_RECLAIM_RADIUS, true))
         return;
 
-    // Death.Hardcore: corpse reclaim never revives
-    if (sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
-        return;
-
     // resurrect
     _player->ResurrectPlayer(_player->InBattleground() ? 1.0f : 0.5f);
 

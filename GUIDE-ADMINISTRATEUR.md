@@ -263,7 +263,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 |---|---|---|
 | Groupes de 6 | `src/server/game/Groups/*`, `Map.cpp` | 6 joueurs par groupe, raid toujours à 40, LFG limité à 5 |
 | Créatures 1,35× | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | dégâts, sorts et PV +35 % |
-| Mort définitive | `AC_DEATH_HARDCORE=1` + `Death.Hardcore` dans le code | aucune résurrection possible (sauf `.revive` GM) |
+| Mort définitive | Module `modules/mod-hardcore` (vendored, patché global) | mode serveur entier : mort → fantôme verrouillé sur place ; sauvetage GM `.hardcore revive` ; journal `hardcore_deaths` |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
 (prévoir de l'espace disque et plusieurs dizaines de minutes ; ne pas interrompre).
@@ -316,13 +316,22 @@ Réflexes de départ : `.commands` (liste tout ce que ton niveau autorise) et `.
 ### Réanimer un personnage — le plus important ici (mode hardcore)
 
 ```text
-.revive [nom_du_personnage]     # cible sélectionnée sinon soi-même ; fonctionne SUR UN PERSONNAGE HORS LIGNE
-.group revive $characterName    # réanime tous les membres du groupe de ce personnage
+.hardcore revive [nom_du_personnage]   # cible sélectionnée sinon soi-même ; fonctionne SUR UN PERSONNAGE HORS LIGNE
 ```
 
 C'est la **seule** façon de sortir de la mort définitive : ni esprit guérisseur, ni récupération
-de cadavre, ni résurrection par un sort ou par un autre joueur. Pour un ami hors ligne, la
-commande enregistre la résurrection, effective à sa prochaine connexion.
+de cadavre, ni résurrection par un sort ou par un autre joueur — et `.revive` / `.group revive`
+ne marchent plus sur un personnage tombé. Le personnage **reste hardcore** : sa prochaine mort
+est de nouveau définitive. Pour un ami hors ligne, la résurrection est enregistrée, effective à
+sa prochaine connexion.
+
+Le module mod-hardcore (mode global, politique ghost) se configure dans
+`env/dist/etc/modules/mod_hardcore.conf` (clés `Hardcore.Enable`, `Hardcore.DeathPolicy`,
+`Hardcore.MinLevelToFlag`, `Hardcore.AnnounceDeaths` ; surchargeables par variables
+d'environnement `AC_HARDCORE_*`, rechargées par `.reload config` ; le cache des flags se
+recharge seulement au démarrage). Exempter durablement un personnage :
+`INSERT INTO hardcore_flags (guid, enabled, fallen) VALUES (<guid>, 0, 0);` puis redémarrer.
+Journal des morts : table `hardcore_deaths` (base `acore_characters`).
 
 ### Serveur
 

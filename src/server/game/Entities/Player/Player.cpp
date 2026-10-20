@@ -4562,14 +4562,8 @@ void Player::BuildPlayerRepop()
     sScriptMgr->OnPlayerReleasedGhost(this);
 }
 
-void Player::ResurrectPlayer(float restore_percent, bool applySickness, bool ignoreHardcore)
+void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 {
-    // Death.Hardcore: death is permanent. GM .revive/.group revive pass ignoreHardcore=true.
-    // isDead() guard: only actual deaths are permanent. Live-player convenience paths that
-    // repop-then-resurrect (HandleHearthAndResurrect) keep working.
-    if (!ignoreHardcore && isDead() && sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
-        return;
-
     if (!sScriptMgr->OnPlayerCanResurrect(this))
         return;
 
@@ -13153,10 +13147,6 @@ uint32 Player::GetBaseWeaponSkillValue(WeaponAttackType attType) const
 
 void Player::ResurectUsingRequestData()
 {
-    // Death.Hardcore: accepting a resurrect request never revives
-    if (sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
-        return;
-
     /// Teleport before resurrecting by player, otherwise the player might get attacked from creatures near his corpse
     TeleportTo(m_resurrectMap, m_resurrectX, m_resurrectY, m_resurrectZ, GetOrientation());
 

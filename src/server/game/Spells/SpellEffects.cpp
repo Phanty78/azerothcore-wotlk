@@ -5103,10 +5103,6 @@ void Spell::EffectSelfResurrect(SpellEffIndex effIndex)
     if (!unitCaster->IsInWorld())
         return;
 
-    // Death.Hardcore: self-resurrect effects (soulstone, reincarnation) never fire
-    if (sWorld->getBoolConfig(CONFIG_DEATH_HARDCORE))
-        return;
-
     uint32 health = 0;
     uint32 mana = 0;
 

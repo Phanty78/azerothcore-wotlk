@@ -2747,19 +2747,6 @@ Death.Bones.World               = 1
 Death.Bones.BattlegroundOrArena = 1
 
 #
-#    Death.Hardcore
-#        Description: Enable hardcore mode where death is permanent. Dead players become
-#                     ghosts as usual but can never be resurrected: spirit healers, corpse
-#                     reclaim, resurrection spells, self-resurrect effects, resurrect
-#                     request popups, battleground spirit guides and the login revive are
-#                     all blocked. GM commands .revive / .group revive still work as an
-#                     administrative override.
-#        Default:     0 - (Disabled)
-#                     1 - (Enabled, death is permanent)
-
-Death.Hardcore = 0
-
-#
 ###################################################################################################
 
 ###################################################################################################

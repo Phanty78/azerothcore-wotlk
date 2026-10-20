@@ -5959,7 +5959,7 @@ void Player::LoadCorpse(PreparedQueryResult result)
             ApplyModFlag(PLAYER_FIELD_BYTES, PLAYER_FIELD_BYTE_RELEASE_TIMER, !sMapStore.LookupEntry(_corpseLocation.GetMapId())->Instanceable());
         }
         else
-            ResurrectPlayer(0.5f, false, HasAtLoginFlag(AT_LOGIN_RESURRECT));
+            ResurrectPlayer(0.5f);
     }
 
     RemoveAtLoginFlag(AT_LOGIN_RESURRECT);
