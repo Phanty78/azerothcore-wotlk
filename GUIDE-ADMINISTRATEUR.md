@@ -264,6 +264,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Groupes de 6 | `src/server/game/Groups/*`, `Map.cpp` | 6 joueurs par groupe, raid toujours à 40, LFG limité à 5 |
 | Créatures 1,35× | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | dégâts, sorts et PV +35 % |
 | Mort définitive | Module `modules/mod-hardcore` (vendored, patché global) | mode serveur entier : mort → fantôme verrouillé sur place ; sauvetage GM `.hardcore revive` ; journal `hardcore_deaths` |
+| XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
 (prévoir de l'espace disque et plusieurs dizaines de minutes ; ne pas interrompre).
