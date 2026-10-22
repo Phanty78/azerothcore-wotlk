@@ -530,8 +530,6 @@ void WorldConfig::BuildConfigCache()
 
     SetConfigValue<uint32>(CONFIG_CHANGE_FACTION_MAX_MONEY, "ChangeFaction.MaxMoney", 0);
 
-    SetConfigValue<bool>(CONFIG_ALLOWS_RANK_MOD_FOR_PET_HEALTH, "Pet.RankMod.Health", true);
-
     SetConfigValue<bool>(CONFIG_MUNCHING_BLIZZLIKE, "MunchingBlizzlike.Enabled", true);
 
     SetConfigValue<bool>(CONFIG_ENABLE_DAZE, "Daze.Enabled", true);

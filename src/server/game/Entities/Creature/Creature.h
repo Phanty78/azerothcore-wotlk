@@ -198,7 +198,9 @@ public:
     uint8 GetCurrentEquipmentId() { return m_equipmentId; }
     void SetCurrentEquipmentId(uint8 id) { m_equipmentId = id; }
 
-    float GetSpellDamageMod(int32 Rank);
+    [[nodiscard]] float GetHealthRateMod() const;
+    [[nodiscard]] float GetDamageRateMod() const;
+    [[nodiscard]] float GetSpellDamageRateMod() const;
 
     [[nodiscard]] VendorItemData const* GetVendorItems() const;
     uint32 GetVendorItemCurrentCount(VendorItem const* vItem);
@@ -388,8 +390,6 @@ public:
     [[nodiscard]] uint32 GetOriginalEntry() const { return m_originalEntry; }
     void SetOriginalEntry(uint32 entry) { m_originalEntry = entry; }
 
-    static float _GetDamageMod(int32 Rank);
-
     float m_SightDistance, m_CombatDistance;
 
     // Handling caster facing during spellcast
@@ -466,8 +466,6 @@ protected:
     // vendor items
     VendorItemCounts m_vendorItemCounts;
 
-    static float _GetHealthMod(int32 Rank);
-
     ObjectGuid m_lootRecipient;
     ObjectGuid::LowType m_lootRecipientGroup;
 
@@ -534,6 +532,7 @@ private:
     void ForcedDespawn(Milliseconds timeMSToDespawn = 0ms, Seconds forcedRespawnTimer = 0s);
 
     [[nodiscard]] bool CanPeriodicallyCallForAssistance() const;
+    [[nodiscard]] bool IsExcludedFromCreatureRates() const;
 
     // WaypointMovementGenerator variable
     uint32 m_waypointID;

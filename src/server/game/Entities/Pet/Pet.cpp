@@ -1123,17 +1123,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     PetLevelInfo const* pInfo = sObjectMgr->GetPetLevelInfo(creature_ID, petlevel);
     if (pInfo)                                      // exist in DB
     {
-        // Default scale value of 1 to use if Pet.RankMod.Health = 0
-        float factorHealth = 1;
-        // If config is set to allow pets to use health modifiers, apply it to creatures with a DB entry
-        // Pet.RankMod.Health = 1 use the factor value based on the rank of the pet, most pets have a rank of 0 and so use
-        // the Elite rank which is set as the default in Creature::_GetHealthMod(int32 Rank)
-        if (sWorld->getBoolConfig(CONFIG_ALLOWS_RANK_MOD_FOR_PET_HEALTH))
-        {
-            factorHealth *= _GetHealthMod(cinfo->rank);
-        }
-
-        SetCreateHealth(pInfo->health*factorHealth);
+        SetCreateHealth(pInfo->health);
         SetStatFlatModifier(UNIT_MOD_HEALTH, BASE_VALUE, (float)pInfo->health);
         if (petType != HUNTER_PET) //hunter pet use focus
         {
@@ -1154,11 +1144,6 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         // xinef: multiply base values by creature_template factors!
         float factorHealth = owner->IsPlayer() ? std::min(1.0f, cinfo->ModHealth) : cinfo->ModHealth;
         float factorMana = owner->IsPlayer() ? std::min(1.0f, cinfo->ModMana) : cinfo->ModMana;
-
-        if (sWorld->getBoolConfig(CONFIG_ALLOWS_RANK_MOD_FOR_PET_HEALTH))
-        {
-            factorHealth *= _GetHealthMod(cinfo->rank);
-        }
 
         SetCreateHealth(std::max<uint32>(1, stats->BaseHealth[cinfo->expansion]*factorHealth));
         SetStatFlatModifier(UNIT_MOD_HEALTH, BASE_VALUE, GetCreateHealth());

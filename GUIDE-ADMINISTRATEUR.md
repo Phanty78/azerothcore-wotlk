@@ -262,12 +262,21 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Sujet | Où | Effet |
 |---|---|---|
 | Groupes de 6 | `src/server/game/Groups/*`, `Map.cpp` | 6 joueurs par groupe, raid toujours à 40, LFG limité à 5 |
-| Créatures 1,35× | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | dégâts, sorts et PV +35 % |
+| Créatures vanilla-like | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | normaux ×1,35 dégâts / ×1,20 PV / ×1,30 sorts ; élites ×1,40 / ×1,50 / ×1,30 ; partout y compris instances |
+| Régénération −20 % | `conf/dist/env.ac` (`AC_RATE_HEALTH`/`AC_RATE_MANA`) | ticks de vie/mana des joueurs ×0,8 |
+| Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
+| Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-hardcore` (vendored, patché global) | mode serveur entier : mort → fantôme verrouillé sur place ; sauvetage GM `.hardcore revive` ; journal `hardcore_deaths` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
 (prévoir de l'espace disque et plusieurs dizaines de minutes ; ne pas interrompre).
+
+Après l'ajout d'un fichier `data/sql/updates/db_world/*.sql`, reconstruire aussi l'image d'import
+(les updates y sont embarqués, il n'y a pas de volume de données monté) :
+`docker compose build ac-db-import && docker compose up -d`. Le service `ac-db-import` applique les
+fichiers manquants au démarrage et enregistre leur hash dans `acore_world.updates`. Le worldserver, lui,
+tourne avec `AC_UPDATES_ENABLE_DATABASES=0` et n'applique rien.
 
 ⚠️ **Piège du fichier de conf monté** : `apps/docker/entrypoint.sh` copie les `.conf.dist` avec
 `cp -n` (jamais d'écrasement). Après un rebuild, un nouveau fichier monté ne recevra **pas** les

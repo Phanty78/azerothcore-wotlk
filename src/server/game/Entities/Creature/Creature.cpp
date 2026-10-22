@@ -1513,8 +1513,6 @@ void Creature::SelectLevel(bool changelevel)
 {
     CreatureTemplate const* cInfo = GetCreatureTemplate();
 
-    uint32 rank = IsPet() ? 0 : cInfo->rank;
-
     // level
     uint8 minlevel = std::min(cInfo->maxlevel, cInfo->minlevel);
     uint8 maxlevel = std::max(cInfo->maxlevel, cInfo->minlevel);
@@ -1528,7 +1526,7 @@ void Creature::SelectLevel(bool changelevel)
     CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(level, cInfo->unit_class);
 
     // health
-    float healthmod = _GetHealthMod(rank);
+    float healthmod = GetHealthRateMod();
 
     uint32 basehp = std::max<uint32>(1, stats->GenerateHealth(cInfo));
     uint32 health = uint32(basehp * healthmod);
@@ -1572,9 +1570,17 @@ void Creature::SelectLevel(bool changelevel)
     sScriptMgr->OnCreatureSelectLevel(cInfo, this);
 }
 
-float Creature::_GetHealthMod(int32 Rank)
+bool Creature::IsExcludedFromCreatureRates() const
 {
-    switch (Rank)                                           // define rates for each elite rank
+    return IsPet() || IsGuardian() || IsTotem() || IsControlledByPlayer();
+}
+
+float Creature::GetHealthRateMod() const
+{
+    if (IsExcludedFromCreatureRates())
+        return 1.0f;
+
+    switch (GetCreatureTemplate()->rank)                    // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
             return sWorld->getRate(RATE_CREATURE_NORMAL_HP);
@@ -1591,9 +1597,12 @@ float Creature::_GetHealthMod(int32 Rank)
     }
 }
 
-float Creature::_GetDamageMod(int32 Rank)
+float Creature::GetDamageRateMod() const
 {
-    switch (Rank)                                           // define rates for each elite rank
+    if (IsExcludedFromCreatureRates())
+        return 1.0f;
+
+    switch (GetCreatureTemplate()->rank)                    // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
             return sWorld->getRate(RATE_CREATURE_NORMAL_DAMAGE);
@@ -1610,9 +1619,12 @@ float Creature::_GetDamageMod(int32 Rank)
     }
 }
 
-float Creature::GetSpellDamageMod(int32 Rank)
+float Creature::GetSpellDamageRateMod() const
 {
-    switch (Rank)                                           // define rates for each elite rank
+    if (IsExcludedFromCreatureRates())
+        return 1.0f;
+
+    switch (GetCreatureTemplate()->rank)                    // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
             return sWorld->getRate(RATE_CREATURE_NORMAL_SPELLDAMAGE);
@@ -1774,7 +1786,7 @@ bool Creature::LoadCreatureFromDB(ObjectGuid::LowType spawnId, Map* map, bool ad
         curhealth = data->curhealth;
         if (curhealth)
         {
-            curhealth = uint32(curhealth * _GetHealthMod(GetCreatureTemplate()->rank));
+            curhealth = uint32(curhealth * GetHealthRateMod());
             if (curhealth < 1)
                 curhealth = 1;
         }
