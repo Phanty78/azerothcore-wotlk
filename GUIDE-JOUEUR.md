@@ -77,3 +77,14 @@ Pour l'installer :
    `Interface/AddOns/` de ton client WoW.
 2. Redémarre le client. Dans la liste des addons, **Faim & Soif** doit apparaître (coché).
 3. En jeu, `/faim` affiche ou masque la fenêtre ; `/faim reset` la replace à sa position par défaut.
+
+L'addon affiche aussi, par défaut, deux petites icônes d'état discrètes (satiété et hydratation)
+en permanence, même lorsque la fenêtre des jauges est fermée. Placées en bas à droite, elles se
+déplacent par glisser-déposer et leur position est retenue. Leur bordure reste grise en temps
+normal, passe au jaune à l'avertissement, à l'orange au critique et au rouge à 0 %. Survole une
+icône pour voir la valeur sur 100, l'état (normal, avertissement, critique ou vide) et le mode ;
+clique dessus pour afficher ou masquer la fenêtre des jauges. `/faim icones` (ou `/faim icons`)
+masque ou réaffiche les icônes et retient ton choix ; `/faim reset` replace la fenêtre et les
+icônes à leurs positions par défaut et réaffiche la fenêtre, en conservant ton choix d'afficher
+ou masquer les icônes. Aucune texture personnalisée ni patch client n'est nécessaire : les
+icônes utilisent les textures d'origine de 3.3.5a.

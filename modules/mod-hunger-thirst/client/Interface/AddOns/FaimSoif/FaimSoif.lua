@@ -10,6 +10,10 @@
 
     Le prefixe est transmis separement par CHAT_MSG_ADDON ; le jeton "FS"
     place en tete du message est accepte puis ignore.
+
+    Une bande de deux icones d'etat reste visible en permanence, meme quand la
+    fenetre principale est masquee ; "/faim icones" (alias "/faim icons")
+    l'affiche ou la masque.
 ----------------------------------------------------------------------------]]
 
 local ADDON_PREFIX = "FS"
@@ -224,10 +228,13 @@ local function UpdateStatus()
     Status:SetText(text)
 end
 
+local UpdateIcons
+
 local function Update()
     UpdateGauge(SatietyGauge, State.satiety, State.satietyBand)
     UpdateGauge(HydrationGauge, State.hydration, State.hydrationBand)
     UpdateStatus()
+    UpdateIcons()
 end
 
 --------------------------------------------------------------------------------
@@ -279,6 +286,260 @@ end)
 Frame:SetScript("OnShow", function()
     Update()
 end)
+
+--------------------------------------------------------------------------------
+-- Bande d'icones d'etat (permanente)
+--
+-- Deux icones restent visibles meme quand la fenetre principale est masquee.
+-- Choix : la bande est deplacable (glisser une icone) ; sa position est
+-- sauvegardee et "/faim reset" la ramene aussi en bas a droite.
+--------------------------------------------------------------------------------
+
+local ICON_SIZE = 28
+local ICON_SPACING = 4
+local ICON_DRAG_THRESHOLD = 4
+local ICON_DEFAULT_POSITION = { point = "BOTTOMRIGHT", relativePoint = "BOTTOMRIGHT", x = -24, y = 140 }
+
+local ICON_TEXTURES = {
+    satiety   = "Interface\\Icons\\INV_Misc_Food_15",
+    hydration = "Interface\\Icons\\INV_Drink_05",
+}
+
+local IconsBar = CreateFrame("Frame", nil, UIParent)
+IconsBar:SetWidth(ICON_SIZE * 2 + ICON_SPACING)
+IconsBar:SetHeight(ICON_SIZE)
+IconsBar:SetFrameStrata("MEDIUM")
+IconsBar:SetClampedToScreen(true)
+IconsBar:SetMovable(true)
+IconsBar:EnableMouse(true)
+IconsBar:RegisterForDrag("LeftButton")
+IconsBar:SetPoint(ICON_DEFAULT_POSITION.point, UIParent, ICON_DEFAULT_POSITION.relativePoint,
+    ICON_DEFAULT_POSITION.x, ICON_DEFAULT_POSITION.y)
+
+local function CreateStatusIcon(parent, key, name)
+    local icon = CreateFrame("Frame", nil, parent)
+    icon:SetWidth(ICON_SIZE)
+    icon:SetHeight(ICON_SIZE)
+    icon:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 8,
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    icon:SetBackdropColor(0, 0, 0, 0.55)
+    icon:SetBackdropBorderColor(0.55, 0.55, 0.55, 0.80)
+    icon:EnableMouse(true)
+    icon:RegisterForDrag("LeftButton")
+
+    icon.key = key
+    icon.tooltipName = name
+    icon.texture = icon:CreateTexture(nil, "ARTWORK")
+    icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", 2, -2)
+    icon.texture:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -2, 2)
+    icon.texture:SetTexture(ICON_TEXTURES[key])
+    icon.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon:Show()
+
+    return icon
+end
+
+local SatietyIcon = CreateStatusIcon(IconsBar, "satiety", "Satiété")
+SatietyIcon:SetPoint("LEFT", IconsBar, "LEFT", 0, 0)
+
+local HydrationIcon = CreateStatusIcon(IconsBar, "hydration", "Hydratation")
+HydrationIcon:SetPoint("LEFT", SatietyIcon, "RIGHT", ICON_SPACING, 0)
+
+local function UpdateIcon(icon)
+    local band = State[icon.key .. "Band"] or 0
+    local alpha = 0.55
+    local borderR, borderG, borderB, borderA = 0.55, 0.55, 0.55, 0.80
+
+    icon.texture:SetDesaturated(false)
+    icon.texture:SetVertexColor(1, 1, 1)
+
+    if not State.loaded then
+        icon.texture:SetDesaturated(true)
+        icon.texture:SetVertexColor(0.55, 0.55, 0.55)
+        alpha = 0.40
+        borderR, borderG, borderB, borderA = 0.40, 0.40, 0.40, 0.70
+    elseif State.mode == 0 then
+        alpha = 0.28
+        borderR, borderG, borderB, borderA = 0.35, 0.35, 0.35, 0.60
+    elseif band ~= 0 then
+        alpha = 0.90
+        borderR, borderG, borderB = BandColor(band)
+        borderA = 1
+    end
+
+    icon.texture:SetAlpha(alpha)
+    icon:SetBackdropBorderColor(borderR, borderG, borderB, borderA)
+end
+
+UpdateIcons = function()
+    UpdateIcon(SatietyIcon)
+    UpdateIcon(HydrationIcon)
+end
+
+local function ToggleFrame()
+    if Frame:IsShown() then
+        Frame:Hide()
+    else
+        Frame:Show()
+        Update()
+    end
+end
+
+local function IconOnEnter(icon)
+    GameTooltip:SetOwner(icon, "ANCHOR_LEFT")
+    GameTooltip:AddLine(icon.tooltipName, 1.00, 0.82, 0.25)
+
+    local band = State[icon.key .. "Band"] or 0
+    if State.loaded then
+        GameTooltip:AddLine(string.format("Valeur : %d/%d", math.floor(Clamp(State[icon.key]) + 0.5), MAX_VALUE),
+            1, 1, 1)
+        local r, g, b = BandColor(band)
+        GameTooltip:AddLine("État : " .. (BAND_LABELS[icon.key][band] or BAND_LABELS[icon.key][0]), r, g, b)
+    else
+        GameTooltip:AddLine("Valeur : --/" .. MAX_VALUE, 0.65, 0.65, 0.65)
+        GameTooltip:AddLine("État : chargement...", 0.65, 0.65, 0.65)
+    end
+
+    local modeText = MODE_LABELS[State.mode] or MODE_LABELS[0]
+    if State.mode == 0 then
+        GameTooltip:AddLine("Mode : " .. modeText, 0.65, 0.65, 0.65)
+    else
+        GameTooltip:AddLine("Mode : " .. modeText, 1, 1, 1)
+    end
+
+    GameTooltip:AddLine("Cliquer pour afficher/masquer les barres", 1, 1, 1, true)
+    GameTooltip:Show()
+end
+
+local function IconOnLeave()
+    GameTooltip:Hide()
+end
+
+local function SaveIconPosition()
+    local point, _, relativePoint, x, y = IconsBar:GetPoint(1)
+    if type(point) ~= "string" or type(relativePoint) ~= "string" then
+        return
+    end
+
+    FaimSoifDB.iconPoint = point
+    FaimSoifDB.iconRelativePoint = relativePoint
+    FaimSoifDB.iconX = x
+    FaimSoifDB.iconY = y
+end
+
+local function ApplySavedIconPosition()
+    IconsBar:ClearAllPoints()
+
+    local point = FaimSoifDB.iconPoint
+    local relativePoint = FaimSoifDB.iconRelativePoint
+    if type(point) == "string" and type(relativePoint) == "string" then
+        IconsBar:SetPoint(point, UIParent, relativePoint, tonumber(FaimSoifDB.iconX) or 0,
+            tonumber(FaimSoifDB.iconY) or 0)
+    else
+        IconsBar:SetPoint(ICON_DEFAULT_POSITION.point, UIParent, ICON_DEFAULT_POSITION.relativePoint,
+            ICON_DEFAULT_POSITION.x, ICON_DEFAULT_POSITION.y)
+    end
+end
+
+local function ResetIconPosition()
+    FaimSoifDB.iconPoint = nil
+    FaimSoifDB.iconRelativePoint = nil
+    FaimSoifDB.iconX = nil
+    FaimSoifDB.iconY = nil
+    ApplySavedIconPosition()
+end
+
+local function ApplyIconsShown()
+    if FaimSoifDB.iconsShown == false then
+        GameTooltip:Hide()
+        IconsBar:Hide()
+    else
+        IconsBar:Show()
+        UpdateIcons()
+    end
+end
+
+local IconPress = { x = nil, y = nil, consumed = false }
+
+local function CursorMovedFromPress()
+    if type(IconPress.x) ~= "number" or type(IconPress.y) ~= "number" then
+        return true
+    end
+
+    local x, y = GetCursorPosition()
+    local scale = IconsBar:GetEffectiveScale()
+    if not scale or scale == 0 then
+        scale = 1
+    end
+
+    local dx = (x - IconPress.x) / scale
+    local dy = (y - IconPress.y) / scale
+    return (dx * dx + dy * dy) > (ICON_DRAG_THRESHOLD * ICON_DRAG_THRESHOLD)
+end
+
+local function HandleIconClick()
+    if IconPress.consumed then
+        return
+    end
+    IconPress.consumed = true
+
+    local moved = CursorMovedFromPress()
+    IconPress.x, IconPress.y = nil, nil
+
+    if not moved then
+        ToggleFrame()
+    end
+end
+
+local function OnIconMouseDown(_, button)
+    if button ~= "LeftButton" then
+        return
+    end
+    IconPress.x, IconPress.y = GetCursorPosition()
+    IconPress.consumed = false
+end
+
+local function OnIconMouseUp(_, button)
+    if button ~= "LeftButton" then
+        return
+    end
+    HandleIconClick()
+end
+
+local function OnIconDragStart()
+    GameTooltip:Hide()
+    IconsBar:StartMoving()
+end
+
+local function OnIconDragStop()
+    IconsBar:StopMovingOrSizing()
+    SaveIconPosition()
+    HandleIconClick()
+end
+
+for _, icon in ipairs({ SatietyIcon, HydrationIcon }) do
+    icon:SetScript("OnMouseDown", OnIconMouseDown)
+    icon:SetScript("OnMouseUp", OnIconMouseUp)
+    icon:SetScript("OnDragStart", OnIconDragStart)
+    icon:SetScript("OnDragStop", OnIconDragStop)
+    icon:SetScript("OnEnter", function(self)
+        IconOnEnter(self)
+    end)
+    icon:SetScript("OnLeave", IconOnLeave)
+end
+
+IconsBar:SetScript("OnMouseDown", OnIconMouseDown)
+IconsBar:SetScript("OnMouseUp", OnIconMouseUp)
+IconsBar:SetScript("OnDragStart", OnIconDragStart)
+IconsBar:SetScript("OnDragStop", OnIconDragStop)
+
+ApplyIconsShown()
 
 --------------------------------------------------------------------------------
 -- Protocole
@@ -359,6 +620,8 @@ EventFrame:SetScript("OnEvent", function(_, event, ...)
             RegisterAddonMessagePrefix(ADDON_PREFIX)
         end
         ApplySavedPosition()
+        ApplySavedIconPosition()
+        ApplyIconsShown()
         Update()
     end
 end)
@@ -380,12 +643,14 @@ SlashCmdList["FAIMSOIF"] = function(message)
 
     if command == "reset" then
         ResetPosition()
+        ResetIconPosition()
         Frame:Show()
         Update()
-    elseif Frame:IsShown() then
-        Frame:Hide()
+    elseif command == "icones" or command == "icons" then
+        FaimSoifDB.iconsShown = (FaimSoifDB.iconsShown == false)
+        ApplyIconsShown()
     else
-        Frame:Show()
+        ToggleFrame()
     end
 end
 

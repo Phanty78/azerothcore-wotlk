@@ -167,6 +167,24 @@ reste `off`). Si la persistance est indisponible, l'état envoyé au login lui f
 « Persistance indisponible ». Tant qu'aucun paquet n'a été reçu (serveur sans le module), il
 reste sur « Chargement... ».
 
+### Icônes d'état
+
+En complément des barres, deux icônes discrètes — satiété et hydratation — sont affichées
+par défaut en permanence, même quand la fenêtre des jauges est masquée. Placées en bas à
+droite, elles se déplacent par glisser-déposer et leur position est sauvegardée.
+
+- La bordure indique la bande : grise en normal, jaune en avertissement, orange en critique et
+  rouge quand la jauge est vide. Les icônes sont grisées tant qu'aucun état n'a été reçu, et
+  restent très discrètes quand le module est désactivé.
+- L'infobulle donne la valeur sur 100, l'état de la bande et le mode actif.
+- Un **clic gauche** sur une icône affiche ou masque la fenêtre des jauges.
+- `/faim icones` (alias `/faim icons`) affiche ou masque les icônes ; le choix est sauvegardé.
+- `/faim reset` replace la fenêtre et les icônes à leurs positions par défaut et réaffiche la
+  fenêtre ; le choix d'afficher ou masquer les icônes est conservé.
+
+Les icônes utilisent uniquement les textures du client 3.3.5a (`INV_Misc_Food_15`,
+`INV_Drink_05`) : aucune texture personnalisée ni patch client n'est nécessaire.
+
 ## Persistance
 
 Table `hunger_thirst_state` (base `acore_characters`), créée automatiquement au démarrage
