@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: Faim & Soif
+## Notes: Jauges de faim et de soif
+## SavedVariables: FaimSoifDB
+
+FaimSoif.lua

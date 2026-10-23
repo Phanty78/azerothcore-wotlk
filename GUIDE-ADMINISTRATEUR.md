@@ -267,6 +267,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-hardcore` (vendored, patché global) | mode serveur entier : mort → fantôme verrouillé sur place ; sauvetage GM `.hardcore revive` ; journal `hardcore_deaths` |
+| Faim et soif | Module `modules/mod-hunger-thirst` + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; table `hunger_thirst_state` ; commandes GM `.faim set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
@@ -285,6 +286,35 @@ nouvelles clés de configuration. Si une nouvelle option n'apparaît pas dans
 de l'image (`docker exec ac-worldserver cat /azerothcore/env/ref/etc/worldserver.conf.dist`).
 Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modification du fichier
 (elles sont lues dans l'environnement, y compris pour une clé absente du `.conf`).
+
+### Module faim et soif (`mod-hunger-thirst`)
+
+- **Config** : `env/dist/etc/modules/mod_hunger_thirst.conf`, créé au démarrage Docker depuis
+  le `.conf.dist` installé dans l'image (`/azerothcore/env/ref/etc/modules/mod_hunger_thirst.conf.dist`
+  dans le conteneur) — l'entrypoint copie désormais chaque `modules/*.conf.dist` manquant vers
+  son `.conf`, sans écraser un fichier existant.
+  Le module est livré avec `Enable = 1` mais **`Mode = off` par défaut** : il est installé et
+  sans effet tant que le mode n'est pas changé. Modes : `off`, `advisory` (jauges, messages et
+  résumé de login, **aucun dégât**) et `survival` (dégâts dès qu'une jauge entre dans la bande
+  critique, `<= CriticalThreshold`, 10 par défaut : `StarvingDamagePct` toutes les
+  `StarvingIntervalMs` ; dès qu'une jauge est à 0, `DehydratedDamagePct` toutes les
+  `DehydratedIntervalMs` ; les deux à 0 appliquent `DoubleEmptyMultiplier` une seule fois).
+  `Lethal = 0` par défaut : même en `survival`, les dégâts ne peuvent pas tuer (plancher 1 PV) ;
+  `Lethal = 1` autorise la mort, donc la mort définitive pour un personnage hardcore.
+  Rechargement à chaud : `.reload config` (sinon `docker compose restart ac-worldserver`).
+- **Table** : `acore_characters.hunger_thirst_state` (`guid`, `satiety`, `hydration`,
+  `updated_at`), créée automatiquement au démarrage — aucun SQL à importer. Pour repartir de
+  zéro, utiliser `.faim reset` (ou supprimer la ligne d'un personnage **hors ligne**).
+- **Commandes GM** (en jeu uniquement, cible **en ligne** obligatoire) :
+
+  ```text
+  .faim                                     # état du personnage (accessible à tous)
+  .faim set <joueur> <satiété> <hydratation>   # valeurs bornées 0–100
+  .faim reset <joueur>                        # retour aux valeurs de départ (100/100 par défaut)
+  ```
+
+- **Rebuild Docker** après ajout ou mise à jour du module :
+  `docker compose build ac-worldserver && docker compose up -d`.
 
 ---
 

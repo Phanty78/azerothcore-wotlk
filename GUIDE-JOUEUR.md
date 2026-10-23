@@ -42,3 +42,35 @@ Seul un administrateur peut te réanimer. Vérifie ton état avec `.hardcore sta
 
 *Si la liste des royaumes reste vide ou si la machine du serveur n'apparaît pas dans Tailscale :
 vérifie que Tailscale affiche bien « Connected », puis préviens-moi.*
+
+## 3. Faim et soif (si activée par l'administrateur)
+
+Le serveur peut activer un module de **faim et de soif**. Il ne demande aucune installation :
+tout se passe côté serveur. Ton personnage a alors deux jauges de 0 à 100, la **satiété** et
+l'**hydratation**, qui baissent avec le temps de jeu.
+
+- Tape **`.faim`** (ou `.faim status`) pour connaître tes deux jauges.
+- Des messages apparaissent automatiquement à **25 %** (avertissement), à **10 %** (critique)
+  et à **0 %** (jauge vide) — seuils par défaut, réglables par l'administrateur.
+- **Mange** et **bois** pour les remonter : les objets de nourriture et de boisson restaurent la
+  jauge correspondante. Les buffs de type « Well Fed » ne comptent pas.
+- En mode `advisory`, la faim et la soif ne font **aucun dégât**. En mode `survival`, les dégâts
+  commencent dès qu'une jauge atteint le seuil critique (**10 %** ou moins par défaut) et
+  s'aggravent à **0 %**. Avec l'option létale désactivée (`Lethal=0`, le défaut), ils ne peuvent
+  **jamais te tuer** : ils te laissent au moins 1 point de vie. Si l'administrateur active
+  `Lethal=1`, tu peux mourir de faim ou de soif — et sur ce serveur, **la mort reste définitive**,
+  hardcore oblige.
+
+### Addon d'affichage — optionnel
+
+Un addon fourni avec le module affiche les deux jauges à l'écran. Il est **facultatif** : le
+client est déjà configuré et rien ne t'oblige à l'installer. Sans lui, les messages de chat et
+`.faim` continuent de fonctionner normalement.
+
+Pour l'installer :
+
+1. Dans le dépôt du serveur, copie le dossier
+   `modules/mod-hunger-thirst/client/Interface/AddOns/FaimSoif` dans le dossier
+   `Interface/AddOns/` de ton client WoW.
+2. Redémarre le client. Dans la liste des addons, **Faim & Soif** doit apparaître (coché).
+3. En jeu, `/faim` affiche ou masque la fenêtre ; `/faim reset` la replace à sa position par défaut.

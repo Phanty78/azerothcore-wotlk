@@ -39,6 +39,15 @@ fi
 # -v == be verbose
 cp -rnv /azerothcore/env/ref/etc/* "$CONF_DIR"
 
+# Copy every module "dist" config to its ".conf" counterpart if it doesn't
+# already exist (modules such as mod-hunger-thirst ship one).
+# nullglob keeps the loop empty - and `set -e` happy - when no module config exists.
+shopt -s nullglob
+for MODULE_CONF_DIST in "$CONF_DIR"/modules/*.conf.dist; do
+    cp -vn "$MODULE_CONF_DIST" "${MODULE_CONF_DIST%.dist}"
+done
+shopt -u nullglob
+
 CONF="$CONF_DIR/$ACORE_COMPONENT.conf"
 CONF_DIST="$CONF_DIR/$ACORE_COMPONENT.conf.dist"
 
