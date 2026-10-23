@@ -991,18 +991,41 @@ namespace HungerThirst
         uint32 const guid = player->GetGUID().GetCounter();
         double const newSatiety = ClampGauge(satiety);
         double const newHydration = ClampGauge(hydration);
+        Band satietyBand = Band::Normal;
+        Band hydrationBand = Band::Normal;
 
-        std::lock_guard<std::mutex> lock(g_stateMutex);
-        State& state = g_states[guid];
-        state.Satiety = newSatiety;
-        state.Hydration = newHydration;
-        state.Loaded = true;
-        state.Dirty = true;
-        state.DamageTimerMs = 0;
-        state.RampTicks = 0;
-        state.AtOneHpWarned = false;
-        state.SatietyBand = RawBand(newSatiety, cfg);
-        state.HydrationBand = RawBand(newHydration, cfg);
+        {
+            std::lock_guard<std::mutex> lock(g_stateMutex);
+            State& state = g_states[guid];
+            state.Satiety = newSatiety;
+            state.Hydration = newHydration;
+            state.Loaded = true;
+            state.Dirty = true;
+            state.DamageTimerMs = 0;
+            state.RampTicks = 0;
+            state.AtOneHpWarned = false;
+            state.SatietyBand = RawBand(newSatiety, cfg);
+            state.HydrationBand = RawBand(newHydration, cfg);
+            satietyBand = state.SatietyBand;
+            hydrationBand = state.HydrationBand;
+        }
+
+        // A GM jump can land directly inside a warning band without Tick
+        // observing the crossing, so emit the corresponding warning once.
+        if (cfg.CurrentMode != Mode::Off)
+        {
+            if (satietyBand >= Band::Warning)
+            {
+                if (char const* message = BandMessage(false, satietyBand))
+                    SendChatLine(player, message);
+            }
+
+            if (hydrationBand >= Band::Warning)
+            {
+                if (char const* message = BandMessage(true, hydrationBand))
+                    SendChatLine(player, message);
+            }
+        }
     }
 
     void ResetState(Player* player)
