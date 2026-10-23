@@ -938,6 +938,12 @@ namespace HungerThirst
                 spellId, itemEntry, casterGuid.ToString(), player->GetName(),
                 creditedSatiety, creditedHydration);
         }
+
+        // Refresh the client immediately. Tick is the periodic sender, but it
+        // is deliberately skipped for exempt GMs and paused players; without
+        // this push, eating would update the server state but leave the bars
+        // frozen until the next command or login.
+        SendAddonState(player);
     }
 
     bool GetSnapshot(Player* player, Snapshot& out)
