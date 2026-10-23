@@ -16,9 +16,12 @@ sans lui, les messages de chat et la commande `.faim` restent disponibles.
 - La décroissance est ralentie par `RestMultiplier` lorsque le personnage est en zone de repos,
   et multipliée par `InstanceMultiplier` dans les instances ; les deux facteurs se cumulent si
   le personnage est au repos dans une instance.
-- La décroissance, les alertes et les dégâts sont **suspendus** en taxi, en champ de bataille et
-  en arène (`PauseOnTaxi`, `PauseInBattleground`, `PauseInArena`), ainsi que pendant un duel ;
-  les maîtres de jeu sont exemptés si `ExemptGMs = 1`.
+- La décroissance, les alertes et les mises à jour périodiques de l'addon sont **suspendues** en
+  taxi, en champ de bataille et en arène (`PauseOnTaxi`, `PauseInBattleground`, `PauseInArena`),
+  ainsi que pendant un duel ; les maîtres de jeu sont exemptés si `ExemptGMs = 1`. Les **dégâts
+  d'épuisement sont toujours supprimés** en champ de bataille et en arène, même si
+  `PauseInBattleground = 0` ou `PauseInArena = 0` : ces deux clés ne contrôlent que la
+  décroissance, les alertes et les mises à jour addon.
 - Deux seuils déclenchent les alertes : `WarningThreshold` (défaut **25 %**, bande *Warning*) et
   `CriticalThreshold` (défaut **10 %**, bande *Critical*). À **0 %** la jauge est *Empty*. Une
   hystérésis (`Hysteresis`, défaut 2 points) évite le clignotement des messages autour d'un seuil.
@@ -87,7 +90,10 @@ laisse le module en veille : l'état est chargé et consultable, mais aucun effe
 ## Configuration
 
 Fichier : `conf/mod_hunger_thirst.conf.dist` (section `[worldserver]`), déployé en
-`env/dist/etc/modules/mod_hunger_thirst.conf`. Rechargement à chaud : `.reload config`.
+`env/dist/etc/modules/mod_hunger_thirst.conf`. Rechargement à chaud : `.reload config` — les
+changements s'appliquent au tick suivant. Exception : passer `Enable` de `0` à `1` ne charge pas
+l'état des joueurs déjà en ligne (il a été déchargé pendant la désactivation) ; ils doivent se
+reconnecter ou être initialisés avec `.faim set`.
 
 | Clé | Défaut | Description |
 |---|---|---|
@@ -101,8 +107,8 @@ Fichier : `conf/mod_hunger_thirst.conf.dist` (section `[worldserver]`), déploy�
 | `HungerThirst.RestMultiplier` | `0.50` | Multiplicateur de décroissance en zone de repos. |
 | `HungerThirst.InstanceMultiplier` | `1.00` | Multiplicateur de décroissance en instance. |
 | `HungerThirst.PauseOnTaxi` | `1` | Suspend la décroissance en taxi. |
-| `HungerThirst.PauseInBattleground` | `1` | Suspend la décroissance en champ de bataille. |
-| `HungerThirst.PauseInArena` | `1` | Suspend la décroissance en arène. |
+| `HungerThirst.PauseInBattleground` | `1` | Suspend décroissance, alertes et mises à jour addon en champ de bataille et en arène. Les dégâts y restent toujours supprimés. |
+| `HungerThirst.PauseInArena` | `1` | Suspend décroissance, alertes et mises à jour addon en arène. Les dégâts y restent toujours supprimés, même avec `PauseInBattleground = 0`. |
 | `HungerThirst.ExemptGMs` | `1` | Exempte les maîtres de jeu. |
 | `HungerThirst.WarningThreshold` | `25` | Seuil d'alerte (%) : bande *Warning*. |
 | `HungerThirst.CriticalThreshold` | `10` | Seuil critique (%) : bande *Critical*. |
@@ -125,8 +131,9 @@ Fichier : `conf/mod_hunger_thirst.conf.dist` (section `[worldserver]`), déploy�
 | `HungerThirst.AddonPrefix` | `FS` | Préfixe du message addon (doit correspondre à l'addon). |
 
 Validation au chargement : `CriticalThreshold < WarningThreshold <= 100` (sinon le seuil critique
-est ajusté), jauges de départ bornées à 0–100, intervalles et cooldowns minimum 1000 ms (ramenés
-à 1000 + erreur au log), valeurs de dégâts, décroissance et multiplicateurs positives ou nulles.
+est ajusté), seuils, jauges, gains, dégâts et décroissance bornés à 0–100, `RestMultiplier` et
+`InstanceMultiplier` bornés à 0–10, `DoubleEmptyMultiplier` borné à **1.00–10.00**, intervalles
+et cooldowns minimum 1000 ms (ramenés à 1000 + erreur au log).
 
 ## Commandes
 
@@ -156,8 +163,9 @@ Sans addon, tout reste fonctionnel : messages de chat aux seuils, résumé au lo
 
 L'addon reçoit aussi un paquet lorsque le module est en mode `off` (mode 0), envoyé à la
 connexion : il affiche alors « Désactivé » (aucun rafraîchissement périodique tant que le mode
-reste `off`). Tant qu'aucun paquet n'a été reçu (serveur sans le module), il reste sur
-« Chargement... ».
+reste `off`). Si la persistance est indisponible, l'état envoyé au login lui fait afficher
+« Persistance indisponible ». Tant qu'aucun paquet n'a été reçu (serveur sans le module), il
+reste sur « Chargement... ».
 
 ## Persistance
 
@@ -172,7 +180,12 @@ Table `hunger_thirst_state` (base `acore_characters`), créée automatiquement a
 | `updated_at` | `BIGINT UNSIGNED` | Horodatage de la dernière sauvegarde (epoch, ms). |
 
 La ligne est supprimée avec le personnage. Si la table ne peut pas être vérifiée/créée, la
-persistance est désactivée proprement (le module continue sans sauvegarde).
+simulation est **suspendue** pour les joueurs concernés : aucun tick (ni décroissance, ni alerte,
+ni dégât), aucune sauvegarde, aucun crédit de nourriture/boisson et aucune mise à jour périodique
+de l'addon. La connexion n'est jamais bloquée. En mode actif, un message « Persistance
+indisponible » est envoyé au joueur (si `ShowLoginSummary = 1`) ; l'addon (si
+`AddonEnable = 1`) affiche le même état. L'état reste non chargé pendant toute la
+session, donc une **reconnexion** est nécessaire après restauration de la table.
 
 ## Intégration hardcore
 
@@ -194,8 +207,8 @@ cause, jauges finales et bandes) ; aucune annonce serveur, aucune écriture en b
 - `Lethal = 0` par défaut : la faim et la soif n'infligent jamais de coup fatal.
 - Le module est livré en `Mode = off` : sans configuration explicite, il n'a aucun effet en jeu.
 - Les dégâts n'existent qu'en mode `survival`.
-- Les buffs « Well Fed » et auras similaires ne restaurent pas les jauges ; seuls les objets
-  nourriture/boisson sont crédités.
+- Les buffs « Well Fed » et auras similaires ne restaurent pas les jauges ; seuls les effets
+  Food/Drink sont crédités (objets et auras de fête/GameObject), pas Well Fed.
 - Aucune annonce globale ni historique en base des morts de famine (uniquement le log serveur).
 
 ## Licence

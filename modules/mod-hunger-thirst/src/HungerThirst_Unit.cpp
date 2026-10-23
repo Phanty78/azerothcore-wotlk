@@ -42,7 +42,15 @@ public:
 
         Player* player = unit->ToPlayer();
         DeathCause cause = ConsumePendingDeathCause();
-        if (cause == DeathCause::None || player->IsAlive())
+        if (cause == DeathCause::None)
+            return;
+
+        // A lethal hit inside Spirit of Redemption keeps the player alive even
+        // though the death hook runs, so logging must not depend on IsAlive().
+        // Any other surviving player is not a death: drop the cause silently.
+        if (player->IsAlive()
+            && !player->HasSpiritOfRedemptionAura()
+            && !player->HasAura(27827))
             return;
 
         Snapshot snapshot;

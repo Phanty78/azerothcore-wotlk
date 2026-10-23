@@ -571,15 +571,21 @@ namespace HungerThirst
         }
 
         // Conditional upsert: a stale writer (older timestamp) is ignored, so
-        // concurrent saves cannot roll the gauges back.
-        CharacterDatabase.Execute(
+        // concurrent saves cannot roll the gauges back. Forced saves (logout,
+        // GM commands) run synchronously so an immediate reconnect cannot
+        // read the stale row; periodic saves stay asynchronous.
+        char const* const query =
             "INSERT INTO `hunger_thirst_state` (`guid`, `satiety`, `hydration`, `updated_at`) "
             "VALUES ({}, {}, {}, {}) "
             "ON DUPLICATE KEY UPDATE "
             "`satiety` = IF(VALUES(`updated_at`) >= `updated_at`, VALUES(`satiety`), `satiety`), "
             "`hydration` = IF(VALUES(`updated_at`) >= `updated_at`, VALUES(`hydration`), `hydration`), "
-            "`updated_at` = GREATEST(`updated_at`, VALUES(`updated_at`))",
-            guid, satiety, hydration, updatedAt);
+            "`updated_at` = GREATEST(`updated_at`, VALUES(`updated_at`))";
+
+        if (force)
+            CharacterDatabase.DirectExecute(query, guid, satiety, hydration, updatedAt);
+        else
+            CharacterDatabase.Execute(query, guid, satiety, hydration, updatedAt);
 
         if (cfg.DebugLog)
         {
@@ -704,8 +710,9 @@ namespace HungerThirst
             if (cfg.CurrentMode == Mode::Survival && (satietyCritical || hydrationCritical)
                 && !inBattleground && !inArena)
             {
-                if (!lethal && playerHealth > 1)
-                    state.AtOneHpWarned = false;
+                // The warning flag is only re-armed when the critical
+                // situation ends (else branch) or a food/drink credit lands,
+                // so health regeneration does not repeat the message.
 
                 // The lethal ramp only advances while at least one gauge is
                 // actually empty; a critical-but-nonzero gauge does not ramp.
@@ -1040,9 +1047,12 @@ namespace HungerThirst
         }
 
         Snapshot snapshot;
-        if (!GetSnapshot(player, snapshot) || !snapshot.Loaded)
+        if (!GetSnapshot(player, snapshot))
             return;
 
+        // An unloaded state (persistence down) is still advertised so the
+        // client leaves "Chargement..." and shows the placeholder gauges;
+        // loaded and persistence both report 0 in that case.
         std::string const payload = Acore::StringFormat(
             "{}\t{:.1f}\t{:.1f}\t{}\t{}\t{}\t{}\t{}\t{}",
             cfg.AddonPrefix,
@@ -1051,7 +1061,7 @@ namespace HungerThirst
             uint32(snapshot.CurrentMode),
             snapshot.Lethal ? 1 : 0,
             snapshot.Loaded ? 1 : 0,
-            snapshot.PersistenceReady ? 1 : 0,
+            (snapshot.Loaded && snapshot.PersistenceReady) ? 1 : 0,
             uint32(snapshot.SatietyBand),
             uint32(snapshot.HydrationBand));
 
@@ -1070,8 +1080,19 @@ namespace HungerThirst
             return;
 
         Snapshot snapshot;
-        if (!GetSnapshot(player, snapshot) || !snapshot.Loaded)
+        if (!GetSnapshot(player, snapshot))
             return;
+
+        if (!snapshot.Loaded)
+        {
+            // Persistence was unavailable when the state was loaded: the
+            // gauges stay frozen until the database is back and the player
+            // logs in again.
+            SendChatLine(player,
+                "Persistance indisponible : la faim et la soif sont suspendues "
+                "jusqu'à restauration de la base et reconnexion.");
+            return;
+        }
 
         ChatHandler handler(player->GetSession());
         handler.PSendSysMessage(

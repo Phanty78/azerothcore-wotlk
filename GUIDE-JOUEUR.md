@@ -60,6 +60,9 @@ l'**hydratation**, qui baissent avec le temps de jeu.
   **jamais te tuer** : ils te laissent au moins 1 point de vie. Si l'administrateur active
   `Lethal=1`, tu peux mourir de faim ou de soif — et sur ce serveur, **la mort reste définitive**,
   hardcore oblige.
+- En **champ de bataille** et en **arène**, les dégâts de faim et de soif ne s'appliquent
+  **jamais** (les jauges peuvent continuer à baisser et les alertes à s'afficher selon la
+  configuration).
 
 ### Addon d'affichage — optionnel
 

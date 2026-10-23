@@ -33,12 +33,16 @@
 #   - with Lethal=1 the hit at 0 ramps and may kill; with Lethal=0 every hit
 #     keeps at least 1 health.
 #
-# All changes can be applied with ".reload config" (they take effect at the
-# next tick); no restart is required.
+# All changes can be applied with ".reload config"; they take effect at the
+# next tick. Exception: switching Enable from 0 to 1 does not load state for
+# players already online (it was dropped while disabled) - they must
+# reconnect or use ".faim set"; new logins are unaffected.
 #
 # Some pauses are always active and have no configuration key: dead players,
 # characters whose state is still loading (or failed to load), and players
-# currently in a duel are never decayed, warned or damaged.
+# currently in a duel are never decayed, warned or damaged. Exhaustion damage
+# is also always suppressed in battlegrounds and arenas, even when
+# PauseInBattleground/PauseInArena are 0.
 #
 # Persistence uses acore_characters.hunger_thirst_state, created
 # automatically at startup:
@@ -47,8 +51,13 @@
 #   hydration DECIMAL(5,2) NOT NULL DEFAULT 100.00
 #   updated_at BIGINT UNSIGNED NOT NULL DEFAULT 0 (epoch milliseconds)
 # Saves are conditional on updated_at, so an older save never overwrites a
-# newer one. If the table cannot be created or verified, the module keeps
-# running in memory with persistence disabled (never blocking login).
+# newer one. If the table cannot be created or verified, the simulation is
+# suspended for the affected players: no tick (decay, warnings, damage), no
+# save, no consumable credit and no periodic addon update. Login is never
+# blocked; with an active mode and ShowLoginSummary=1 the player receives a
+# "Persistance indisponible" chat notice, and when AddonEnable=1 the addon
+# displays the same status. The state stays unloaded for the whole
+# session, so a reconnect is required once the table is available again.
 #
 # Validation performed while loading:
 #   - unknown Mode -> off (LOG_ERROR)
@@ -158,15 +167,21 @@ HungerThirst.PauseOnTaxi = 1
 
 #
 #    HungerThirst.PauseInBattleground
-#        Suspend the module while the player is in a battleground (including
-#        arenas; the arena switch below is an additional guard).
+#        Suspend decay, warnings and periodic addon updates while the player
+#        is in a battleground or arena (the arena switch below is an
+#        additional guard). Exhaustion damage is always suppressed in both,
+#        even when this is 0; with both switches at 0, decay and warnings
+#        keep running.
 #        Default: 1
 #
 HungerThirst.PauseInBattleground = 1
 
 #
 #    HungerThirst.PauseInArena
-#        Suspend the module while the player is in an arena match.
+#        Suspend decay, warnings and periodic addon updates while the player
+#        is in an arena match. Exhaustion damage is always suppressed in
+#        arenas, even when this is 0 and PauseInBattleground is 0; decay and
+#        warnings then keep running.
 #        Default: 1
 #
 HungerThirst.PauseInArena = 1

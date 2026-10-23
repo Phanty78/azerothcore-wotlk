@@ -201,7 +201,11 @@ end
 
 local function UpdateStatus()
     if not State.loaded then
-        Status:SetText("|cffffd200Chargement...|r")
+        if State.persistence == false then
+            Status:SetText("|cffff9d00Persistance indisponible|r")
+        else
+            Status:SetText("|cffffd200Chargement...|r")
+        end
         return
     end
 
@@ -324,8 +328,12 @@ local function ApplyPayload(payload)
     Update()
 end
 
-local function OnAddonMessage(prefix, text)
+local function OnAddonMessage(prefix, text, channel, sender)
     if prefix ~= ADDON_PREFIX then
+        return
+    end
+    -- Le serveur envoie un whisper d'addon de soi-meme a soi-meme.
+    if channel ~= "WHISPER" or sender ~= UnitName("player") then
         return
     end
 
@@ -344,12 +352,13 @@ EventFrame:RegisterEvent("CHAT_MSG_ADDON")
 EventFrame:RegisterEvent("PLAYER_LOGIN")
 EventFrame:SetScript("OnEvent", function(_, event, ...)
     if event == "CHAT_MSG_ADDON" then
-        local prefix, text = ...
-        OnAddonMessage(prefix, text)
+        local prefix, text, channel, sender = ...
+        OnAddonMessage(prefix, text, channel, sender)
     elseif event == "PLAYER_LOGIN" then
         if RegisterAddonMessagePrefix then
             RegisterAddonMessagePrefix(ADDON_PREFIX)
         end
+        ApplySavedPosition()
         Update()
     end
 end)
@@ -380,5 +389,4 @@ SlashCmdList["FAIMSOIF"] = function(message)
     end
 end
 
-ApplySavedPosition()
 Update()

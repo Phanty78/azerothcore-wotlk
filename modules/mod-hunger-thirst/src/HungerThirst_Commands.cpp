@@ -4,7 +4,7 @@
  * Exposes the `.faim` command:
  *   .faim / .faim status                  show the player's current state
  *   .faim aide                            short French help
- *   .faim set <player> <satiety> <hydra>  game master only
+ *   .faim set <player> <satiety> <hydration>  game master only
  *   .faim reset <player>                  game master only
  *
  * The command owns no state: every read and write goes through the

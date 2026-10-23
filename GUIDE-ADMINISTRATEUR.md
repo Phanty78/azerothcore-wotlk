@@ -301,10 +301,21 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   `DehydratedIntervalMs` ; les deux à 0 appliquent `DoubleEmptyMultiplier` une seule fois).
   `Lethal = 0` par défaut : même en `survival`, les dégâts ne peuvent pas tuer (plancher 1 PV) ;
   `Lethal = 1` autorise la mort, donc la mort définitive pour un personnage hardcore.
-  Rechargement à chaud : `.reload config` (sinon `docker compose restart ac-worldserver`).
+  En champ de bataille et en arène, les dégâts d'épuisement sont **toujours** supprimés, même si
+  `PauseInBattleground = 0` ou `PauseInArena = 0` ; ces deux clés ne contrôlent que la
+  décroissance, les alertes et les mises à jour addon.
+  Rechargement à chaud : `.reload config` (sinon `docker compose restart ac-worldserver`) ; les
+  changements s'appliquent au tick suivant. Exception : passer `Enable` de `0` à `1` ne charge
+  pas l'état des joueurs déjà en ligne — ils doivent se reconnecter ou être initialisés avec
+  `.faim set` (les nouvelles connexions sont normales).
 - **Table** : `acore_characters.hunger_thirst_state` (`guid`, `satiety`, `hydration`,
   `updated_at`), créée automatiquement au démarrage — aucun SQL à importer. Pour repartir de
   zéro, utiliser `.faim reset` (ou supprimer la ligne d'un personnage **hors ligne**).
+  Si la table ne peut pas être créée/vérifiée, la simulation est suspendue pour les joueurs
+  concernés (aucun tick, sauvegarde, crédit ni mise à jour périodique de l'addon) sans jamais
+  bloquer la connexion. En mode actif, le joueur reçoit « Persistance indisponible » (si le
+  résumé de login est activé) ; l'addon affiche le même état.
+  Une reconnexion est nécessaire une fois la table restaurée.
 - **Commandes GM** (en jeu uniquement, cible **en ligne** obligatoire) :
 
   ```text
