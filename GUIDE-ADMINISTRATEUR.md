@@ -266,7 +266,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Régénération −20 % | `conf/dist/env.ac` (`AC_RATE_HEALTH`/`AC_RATE_MANA`) | ticks de vie/mana des joueurs ×0,8 |
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
-| Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
+| Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
 | Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
@@ -306,7 +306,7 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   `StarvingIntervalMs` ; dès qu'une jauge est à 0, `DehydratedDamagePct` toutes les
   `DehydratedIntervalMs` ; les deux à 0 appliquent `DoubleEmptyMultiplier` une seule fois).
   `Lethal = 0` par défaut : même en `survival`, les dégâts ne peuvent pas tuer (plancher 1 PV) ;
-  `Lethal = 1` autorise la mort, donc la mort définitive pour un personnage hardcore.
+  `Lethal = 1` autorise la mort — définitive uniquement pour un personnage ayant activé le mode Hardcore.
   En champ de bataille et en arène, les dégâts d'épuisement sont **toujours** supprimés, même si
   `PauseInBattleground = 0` ou `PauseInArena = 0` ; ces deux clés ne contrôlent que la
   décroissance, les alertes et les mises à jour addon.
@@ -402,6 +402,14 @@ configure dans `env/dist/etc/modules/challenge_modes.conf` :
 - tous les autres `*.Enable = 0` (`SemiHardcore`, `SelfCrafted`, `ItemQualityLevel`, `SlowXpGain`,
   `VerySlowXpGain`, `QuestXpOnly`, `IronMan`) : seuls les défis activés apparaissent au Shrine.
 
+Ces sept valeurs à 0 sont des **surcharges locales** : le `challenge_modes.conf.dist` du module les
+livre à 1. Si le fichier live est supprimé ou régénéré depuis le `.dist`, remettre ces sept
+`*.Enable` à 0 avant de redémarrer.
+
+Le module n'est pas versionné dans ce dépôt : un checkout neuf doit cloner
+`modules/mod-challenge-modes`, se placer sur le commit `1930525` puis appliquer les patchs locaux
+(branche `local-adaptations`) avant de reconstruire l'image.
+
 Prérequis : `EnablePlayerSettings = 1` dans `env/dist/etc/worldserver.conf` — sans lui, les réglages
 de défi ne sont pas conservés d'une connexion à l'autre. Le Shrine of Challenge et son texte
 français viennent de deux SQL à importer **manuellement** dans `acore_world` (le serveur peut rester
@@ -421,7 +429,7 @@ démarrage du worldserver.
 > zéro (les comptes et les tables système sont conservés). Le personnage du bot d'hôtel des ventes
 > a disparu avec eux : l'AH bot est donc **désactivé** tant qu'un nouveau personnage bot n'existe
 > pas. Pour le réactiver : créer un personnage, relever son guid
-> (`SELECT guid, name FROM characters ORDER BY guid DESC LIMIT 5;`), puis renseigner
+> (`SELECT guid, name FROM acore_characters.characters ORDER BY guid DESC LIMIT 5;`), puis renseigner
 > `AuctionHouseBot.GUIDs = <guid>` et `AuctionHouseBot.EnableSeller = true` dans
 > `env/dist/etc/modules/mod_ahbot.conf`, et redémarrer `ac-worldserver`
 > (`docker compose restart ac-worldserver`).

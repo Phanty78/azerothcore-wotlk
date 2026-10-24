@@ -1,5 +1,8 @@
 # Replace mod-hardcore with mod-challenge-modes (French, opt-in hardcore)
 
+> **Status: executed on 2026-10-24.** This document is kept as a migration record. The destructive
+> steps (character wipe) must not be re-run as-is.
+
 ## Context
 
 The server currently runs a vendored `mod-hardcore` that auto-flags **every** character at login (server-wide permadeath). The user wants per-character opt-in hardcore via `mod-challenge-modes` (Shrine of Challenge, level 1 / DK ≤ 55), patched to restore the features the old module had — server-wide death announcements, a persistent death journal (`hardcore_deaths`), and a GM revive command — and translated to French. Per explicit user decision, **all existing characters are wiped from the database (fresh start)**; the AH bot character disappears with the wipe, so the AH bot is disabled until a new bot character is created and configured. Target: private WotLK 3.3.5a Docker deployment (max 10 players) also running `mod-hunger-thirst` (Mode=off) and `mod-ah-bot-plus`.
@@ -10,7 +13,7 @@ The server currently runs a vendored `mod-hardcore` that auto-flags **every** ch
 
 1. **Clone and branch** (the directory is ignored by the core `.gitignore`):
    ```bash
-   cd /Users/test/Documents/git/wow/azerothcore-wotlk
+   # from the repository root
    git clone https://github.com/ZhengPeiRu21/mod-challenge-modes.git modules/mod-challenge-modes
    git -C modules/mod-challenge-modes checkout 1930525b9530d329cb9fe0504a3c9b5b40a12261
    git -C modules/mod-challenge-modes switch -c local-adaptations
@@ -103,7 +106,7 @@ The server currently runs a vendored `mod-hardcore` that auto-flags **every** ch
    - Add `void OnPlayerJustDied(Player* player) override { HandleHardcoreDeath(player); }` (core calls it once per death from `Player::KillPlayer`, `Player.cpp:4672` — covers creature, PvP and environmental deaths).
    - In `OnPlayerReleasedGhost`: replace the `UpdatePlayerSetting(...HARDCORE_DEAD...)` line with `HandleHardcoreDeath(player);` and keep the kick (French string).
    - **Delete** the `OnPlayerPVPKill` and `OnPlayerKilledByCreature` overrides from `ChallengeMode_Hardcore` (now centralized; do not touch the SemiHardcore class which has its own).
-   - Keep `OnPlayerLogin` and `OnPlayerResurrect` as-is (they now work thanks to the step-3 fix); they kill+kick dead hardcore characters.
+   - Keep `OnPlayerLogin` as-is (it now works thanks to the step-3 fix). Keep the kill+kick in `OnPlayerResurrect`, but gate it on `challengeEnabledForPlayer(SETTING_HARDCORE, player) && GetPlayerSetting("mod-challenge-modes", HARDCORE_DEAD).value`: `ResurrectPlayer` is also called by `.hardcore revive` after clearing the dead flag, and an ungated hook would immediately re-kill the revived character.
 
 10. **GM commands** — add a `CommandScript` class `hardcore_commandscript` in `src/ChallengeModes.cpp` registering:
     ```cpp
@@ -124,7 +127,7 @@ The server currently runs a vendored `mod-hardcore` that auto-flags **every** ch
 
 11. **French config comments** — translate every `#` comment line in `conf/challenge_modes.conf.dist` to French; keep all key names, default values, ordering and the two new keys' values byte-identical.
 
-12. **Compile check** (mod-hardcore still present, harmless): `docker compose build ac-worldserver` must succeed.
+12. **Compile check** (mod-hardcore still present at this stage, harmless; removed in Phase B): `docker compose build ac-worldserver` must succeed.
 
 ### Phase B — Core repository switch
 
@@ -162,7 +165,7 @@ The server currently runs a vendored `mod-hardcore` that auto-flags **every** ch
 4. Wipe all character data — preserve only account-level and system tables. Generate then execute:
    ```bash
    docker exec -i ac-database sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -B' <<'SQL' > /tmp/wipe-characters.sql
-   SELECT CONCAT('TRUNCATE TABLE ', table_name, ';')
+   SELECT CONCAT('TRUNCATE TABLE `', table_name, '`;')
    FROM information_schema.tables
    WHERE table_schema = 'acore_characters'
      AND table_name NOT IN (
@@ -195,10 +198,10 @@ The server currently runs a vendored `mod-hardcore` that auto-flags **every** ch
 
 ## Verification
 
-Automated (no game client needed), working directory `/Users/test/Documents/git/wow/azerothcore-wotlk`:
+Automated (no game client needed), from the repository root:
 
 1. Build: `docker compose build ac-worldserver` exits 0.
-2. After restart, `docker logs ac-worldserver` shows `challenge_modes.conf` in the config list, **no** `mod_hardcore.conf`, the line `AuctionHouseBot.GUIDs is not configured so this module will be disabled`, and no module errors.
+2. After restart, `docker logs ac-worldserver` shows `challenge_modes.conf` in the config list, **no** `mod_hardcore.conf`, and no module errors. With `AuctionHouseBot.EnableSeller = false` and `AuctionHouseBot.Buyer.Enabled = false`, mod-ah-bot-plus returns from `IsModuleEnabled()` before the "GUIDs is not configured" log line; the expected proof is the absence of AHBot activity, not that line.
 3. Wipe proof: `docker exec ac-database sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" acore_characters -e "SELECT COUNT(*) FROM characters; SELECT COUNT(*) FROM auctionhouse; SELECT COUNT(*) FROM hardcore_deaths; SHOW TABLES LIKE '\''hardcore_flags'\'';"'` → `0`, `0`, `0`, empty result set.
 4. Shrine proof: `docker exec ac-database sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" acore_world -e "SELECT COUNT(*) FROM gameobject WHERE id=254605; SELECT COUNT(*) FROM npc_text WHERE ID=1266900;"'` → `9` and `1`.
 5. Config proof: `grep -E '^EnablePlayerSettings' env/dist/etc/worldserver.conf` → `1`; `grep -E '^(ChallengeModes|Hardcore)\.' env/dist/etc/modules/challenge_modes.conf` shows the toggles; `grep -E '^AuctionHouseBot\.(EnableSeller|GUIDs)' env/dist/etc/modules/mod_ahbot.conf` → `false` / `0`.
@@ -222,5 +225,5 @@ Manual in-game checklist (requires the game client — hand to the user if unava
 - The module README stays English (upstream developer doc); French documentation lives in the server guides.
 - If `npc_text` ID 1266900 turns out occupied at execution (verified free now), use `1266901` in both the SQL file and the `SendGossipMenuFor` call.
 - If compilation fails after the patches, fix errors iteratively; only the step-2 `bool&` change is known-mandatory. `Hardcore.DisableLevel` stays `0` and `Hardcore.XPMultiplier` stays `1` (no behavior change requested).
-- If a `TRUNCATE` fails on an unexpected table, the wrapped `SET FOREIGN_KEY_CHECKS=0` already handles FK constraints; any other failure means the preserve list is wrong — inspect the table and decide (system tables are preserved, character-data tables are not).
+- If a `TRUNCATE` fails, first check the generated statement: table names must be backtick-quoted (`groups` is a reserved word in MySQL 8). The wrapped `SET FOREIGN_KEY_CHECKS=0` handles FK constraints; any other failure means the preserve list is wrong — inspect the table and decide (system tables are preserved, character-data tables are not).
 - `docker compose up -d ac-worldserver` does not re-run `ac-db-import` (it is `Exited (0)` and `updates`/`updates_include` are preserved); if it ever re-ran, it would be a no-op.
