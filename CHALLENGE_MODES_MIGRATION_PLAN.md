@@ -4,7 +4,9 @@
 > steps (character wipe) must not be re-run as-is.
 >
 > **Update 2026-10-24:** the live config was later switched to all eight challenges enabled
-> (`*.Enable = 1`); the Hardcore-only values in Phase C describe the initial rollout.
+> (`*.Enable = 1`); the Hardcore-only values in Phase C describe the initial rollout. The AH bot
+> was re-enabled with character `Bothv` (GUID 4, account 20), so the post-wipe "AH bot disabled"
+> notes below describe the initial state only.
 
 ## Context
 
@@ -222,7 +224,7 @@ Manual in-game checklist (requires the game client — hand to the user if unava
 ## Assumptions & contingencies
 
 - **Characters wipe is irreversible by design** (explicit user decision); the mysqldump in Phase D is the only rollback. If the user wants the old state back, restore that dump into `acore_characters` and rebuild without this plan's module changes.
-- **AH bot disabled after the wipe**: its configured character (GUID 6) is deleted. Re-enable procedure is documented in the admin guide (Phase B step 3); not part of automated verification.
+- **AH bot after the wipe**: its original character (GUID 6) was deleted. It was later re-enabled with `Bothv` (GUID 4); the re-enable procedure is documented in the admin guide.
 - `.hardcore status` is added for parity with the replaced module (the player guide references it); `.hardcore on` is not added — the shrine is the opt-in mechanism by design.
 - Shrine level restriction (level 1 / DK ≤ 55) is kept unchanged; the wipe makes existing characters moot.
 - The module README stays English (upstream developer doc); French documentation lives in the server guides.

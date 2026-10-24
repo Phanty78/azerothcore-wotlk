@@ -427,13 +427,14 @@ Journal des morts : table `hardcore_deaths` (base `acore_characters`), créée a
 démarrage du worldserver.
 
 > ℹ️ **Base de personnages remise à zéro** : tous les personnages ont été effacés pour repartir de
-> zéro (les comptes et les tables système sont conservés). Le personnage du bot d'hôtel des ventes
-> a disparu avec eux : l'AH bot est donc **désactivé** tant qu'un nouveau personnage bot n'existe
-> pas. Pour le réactiver : créer un personnage, relever son guid
+> zéro (les comptes et les tables système sont conservés). L'AH bot est réactivé avec le personnage
+> **`Bothv`** (GUID 4, compte 20) : `AuctionHouseBot.GUIDs = 4` et
+> `AuctionHouseBot.EnableSeller = true`. Pour changer de bot : créer un personnage, relever son guid
 > (`SELECT guid, name FROM acore_characters.characters ORDER BY guid DESC LIMIT 5;`), puis renseigner
 > `AuctionHouseBot.GUIDs = <guid>` et `AuctionHouseBot.EnableSeller = true` dans
 > `env/dist/etc/modules/mod_ahbot.conf`, et redémarrer `ac-worldserver`
-> (`docker compose restart ac-worldserver`).
+> (`docker compose restart ac-worldserver`). Les premières annonces apparaissent au premier cycle
+> de vente (10 minutes par défaut).
 
 ### Serveur
 
