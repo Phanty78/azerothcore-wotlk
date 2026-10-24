@@ -267,7 +267,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-hardcore` (vendored, patché global) | mode serveur entier : mort → fantôme verrouillé sur place ; sauvetage GM `.hardcore revive` ; journal `hardcore_deaths` |
-| Faim et soif | Module `modules/mod-hunger-thirst` + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; table `hunger_thirst_state` ; commandes GM `.faim set/reset` |
+| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
@@ -289,6 +289,12 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
 
 ### Module faim et soif (`mod-hunger-thirst`)
 
+- **Dépôt séparé** : le module vit désormais dans son propre dépôt git, cloné dans
+  `modules/mod-hunger-thirst`. Il n'est **pas** versionné dans le dépôt du serveur : un
+  `git clone` de ce dernier ne le contient pas. Conséquence : après un nouveau clone du dépôt
+  du serveur, cloner d'abord le module à cet emplacement **avant**
+  `docker compose build ac-worldserver`, sinon l'image est construite sans lui. Pour mettre à
+  jour le module : `git -C modules/mod-hunger-thirst pull`, puis reconstruire l'image.
 - **Config** : `env/dist/etc/modules/mod_hunger_thirst.conf`, créé au démarrage Docker depuis
   le `.conf.dist` installé dans l'image (`/azerothcore/env/ref/etc/modules/mod_hunger_thirst.conf.dist`
   dans le conteneur) — l'entrypoint copie désormais chaque `modules/*.conf.dist` manquant vers
@@ -307,10 +313,10 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   Rechargement à chaud : `.reload config` (sinon `docker compose restart ac-worldserver`) ; les
   changements s'appliquent au tick suivant. Exception : passer `Enable` de `0` à `1` ne charge
   pas l'état des joueurs déjà en ligne — ils doivent se reconnecter ou être initialisés avec
-  `.faim set` (les nouvelles connexions sont normales).
+  `.hungerthirst set` (les nouvelles connexions sont normales).
 - **Table** : `acore_characters.hunger_thirst_state` (`guid`, `satiety`, `hydration`,
   `updated_at`), créée automatiquement au démarrage — aucun SQL à importer. Pour repartir de
-  zéro, utiliser `.faim reset` (ou supprimer la ligne d'un personnage **hors ligne**).
+  zéro, utiliser `.hungerthirst reset` (ou supprimer la ligne d'un personnage **hors ligne**).
   Si la table ne peut pas être créée/vérifiée, la simulation est suspendue pour les joueurs
   concernés (aucun tick, sauvegarde, crédit ni mise à jour périodique de l'addon) sans jamais
   bloquer la connexion. En mode actif, le joueur reçoit « Persistance indisponible » (si le
@@ -319,12 +325,18 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
 - **Commandes GM** (en jeu uniquement, cible **en ligne** obligatoire) :
 
   ```text
-  .faim                                     # état du personnage (accessible à tous)
-  .faim set <joueur> <satiété> <hydratation>   # valeurs bornées 0–100
-  .faim reset <joueur>                        # retour aux valeurs de départ (100/100 par défaut)
+  .hungerthirst                                # état du personnage (accessible à tous)
+  .hungerthirst status                         # idem, sous-commande explicite
+  .hungerthirst help                           # rappel des sous-commandes
+  .hungerthirst set <joueur> <satiété> <hydratation>   # valeurs bornées 0–100
+  .hungerthirst reset <joueur>                 # retour aux valeurs de départ (100/100 par défaut)
   ```
 
-- **Rebuild Docker** après ajout ou mise à jour du module :
+- **Addon client** : livré dans le dépôt du module, dossier
+  `modules/mod-hunger-thirst/client/Interface/AddOns/HungerThirst` (nom affiché
+  **Hunger & Thirst**) ; les joueurs le copient dans `Interface/AddOns/` de leur client et
+  utilisent `/hungerthirst` (ou `/ht`), `/hungerthirst icons` et `/hungerthirst reset`.
+- **Rebuild Docker** après le clone initial ou une mise à jour du module :
   `docker compose build ac-worldserver && docker compose up -d`.
 
 ---

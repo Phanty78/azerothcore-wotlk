@@ -49,7 +49,7 @@ Le serveur peut activer un module de **faim et de soif**. Il ne demande aucune i
 tout se passe côté serveur. Ton personnage a alors deux jauges de 0 à 100, la **satiété** et
 l'**hydratation**, qui baissent avec le temps de jeu.
 
-- Tape **`.faim`** (ou `.faim status`) pour connaître tes deux jauges.
+- Tape **`.hungerthirst`** (ou `.hungerthirst status`) pour connaître tes deux jauges.
 - Des messages apparaissent automatiquement à **25 %** (avertissement), à **10 %** (critique)
   et à **0 %** (jauge vide) — seuils par défaut, réglables par l'administrateur.
 - **Mange** et **bois** pour les remonter : les objets de nourriture et de boisson restaurent la
@@ -68,23 +68,24 @@ l'**hydratation**, qui baissent avec le temps de jeu.
 
 Un addon fourni avec le module affiche les deux jauges à l'écran. Il est **facultatif** : le
 client est déjà configuré et rien ne t'oblige à l'installer. Sans lui, les messages de chat et
-`.faim` continuent de fonctionner normalement.
+`.hungerthirst` continuent de fonctionner normalement.
 
 Pour l'installer :
 
-1. Dans le dépôt du serveur, copie le dossier
-   `modules/mod-hunger-thirst/client/Interface/AddOns/FaimSoif` dans le dossier
-   `Interface/AddOns/` de ton client WoW.
-2. Redémarre le client. Dans la liste des addons, **Faim & Soif** doit apparaître (coché).
-3. En jeu, `/faim` affiche ou masque la fenêtre ; `/faim reset` la replace à sa position par défaut.
+1. Le module est un dépôt git séparé, cloné dans `modules/mod-hunger-thirst` sur le serveur.
+   Copie son dossier `modules/mod-hunger-thirst/client/Interface/AddOns/HungerThirst` dans le
+   dossier `Interface/AddOns/` de ton client WoW.
+2. Redémarre le client. Dans la liste des addons, **Hunger & Thirst** doit apparaître (coché).
+3. En jeu, `/hungerthirst` (ou `/ht`) affiche ou masque la fenêtre ; `/hungerthirst reset` la
+   replace à sa position par défaut.
 
 L'addon affiche aussi, par défaut, deux petites icônes d'état discrètes (satiété et hydratation)
 en permanence, même lorsque la fenêtre des jauges est fermée. Placées en bas à droite, elles se
 déplacent par glisser-déposer et leur position est retenue. Leur bordure reste grise en temps
 normal, passe au jaune à l'avertissement, à l'orange au critique et au rouge à 0 %. Survole une
 icône pour voir la valeur sur 100, l'état (normal, avertissement, critique ou vide) et le mode ;
-clique dessus pour afficher ou masquer la fenêtre des jauges. `/faim icones` (ou `/faim icons`)
-masque ou réaffiche les icônes et retient ton choix ; `/faim reset` replace la fenêtre et les
-icônes à leurs positions par défaut et réaffiche la fenêtre, en conservant ton choix d'afficher
-ou masquer les icônes. Aucune texture personnalisée ni patch client n'est nécessaire : les
-icônes utilisent les textures d'origine de 3.3.5a.
+clique dessus pour afficher ou masquer la fenêtre des jauges. `/hungerthirst icons` masque ou
+réaffiche les icônes et retient ton choix ; `/hungerthirst reset`
+replace la fenêtre et les icônes à leurs positions par défaut et réaffiche la fenêtre, en
+conservant ton choix d'afficher ou masquer les icônes. Aucune texture personnalisée ni patch
+client n'est nécessaire : les icônes utilisent les textures d'origine de 3.3.5a.
