@@ -45,9 +45,12 @@ annoncée à tout le serveur. Vérifie ton état avec `.hardcore status` ; seul 
 peut te réanimer (`.hardcore revive`). Un personnage **sans** Hardcore réapparaît normalement
 (esprit guérisseur ou résurrection classique).
 
-D'autres défis sont proposés au Shrine (Semi-Hardcore, équipement auto-fabriqué, qualité
-d'équipement, XP lente/très lente, XP quêtes, Iron Man) ; certains sont exclusifs entre eux et
-disparaissent du menu dès qu'un défi incompatible est activé.
+D'autres défis sont proposés au Shrine (Semi-Hardcore, équipement auto-fabriqué, équipement
+fabriqué par un joueur, qualité d'équipement, XP lente/très lente, XP quêtes, Iron Man) ; certains
+sont exclusifs entre eux et disparaissent du menu dès qu'un défi incompatible est activé. Le défi
+**équipement fabriqué par un joueur** n'autorise que les armes et armures fabriquées par n'importe
+quel joueur, toi compris et sans restriction de compte ; ton équipement de départ reste autorisé,
+et les consommables comme les objets non équipables ne sont pas concernés.
 
 *Si la liste des royaumes reste vide ou si la machine du serveur n'apparaît pas dans Tailscale :
 vérifie que Tailscale affiche bien « Connected », puis préviens-moi.*

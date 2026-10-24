@@ -397,14 +397,17 @@ configure dans `env/dist/etc/modules/challenge_modes.conf` :
 
 - `ChallengeModes.Enable = 1` — active le module de défis ;
 - `Hardcore.Enable = 1`, `SemiHardcore.Enable = 1`, `SelfCrafted.Enable = 1`,
-  `ItemQualityLevel.Enable = 1`, `SlowXpGain.Enable = 1`, `VerySlowXpGain.Enable = 1`,
-  `QuestXpOnly.Enable = 1`, `IronMan.Enable = 1` — tous les défis sont proposés au Shrine ;
+  `CraftedEquipmentOnly.Enable = 1`, `ItemQualityLevel.Enable = 1`, `SlowXpGain.Enable = 1`,
+  `VerySlowXpGain.Enable = 1`, `QuestXpOnly.Enable = 1`, `IronMan.Enable = 1` — tous les défis
+  sont proposés au Shrine ;
 - `Hardcore.AnnounceDeaths = 1` — annonce chaque mort Hardcore à tout le serveur ;
 - `Hardcore.LogDeaths = 1` — journalise chaque mort dans `hardcore_deaths`.
 
 Le module gère les exclusivités : `Hardcore`/`SemiHardcore`, `SelfCrafted`/`IronMan` et
 `SlowXpGain`/`VerySlowXpGain` ne peuvent pas être combinés ; dès qu'un défi d'une paire est activé,
-l'autre disparaît du menu. Le `challenge_modes.conf.dist` du module livre déjà tous les défis à 1 :
+l'autre disparaît du menu. `CraftedEquipmentOnly` est indépendant des autres défis et peut être
+combiné avec eux ; `SelfCrafted` reste la règle plus stricte, limitée aux objets fabriqués par le
+personnage lui-même. Le `challenge_modes.conf.dist` du module livre déjà tous les défis à 1 :
 la config live est alignée.
 
 Le module n'est pas versionné dans ce dépôt : un checkout neuf doit cloner
