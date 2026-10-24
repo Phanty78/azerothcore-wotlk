@@ -37,13 +37,17 @@ Laisse Tailscale **allumé pendant que tu joues** (icône dans la barre des tâc
 
 ⚠️ **La mort n'est définitive que si tu as activé le mode Hardcore.** Le **Shrine of
 Challenge** — une antique idole dans le cimetière de la zone de départ — n'est visible qu'au
-**niveau 1** (ou jusqu'au **niveau 55** pour un chevalier de la mort) : parle-lui et choisis
-**Activer le mode Hardcore**. À partir de là, la mort est définitive : ton personnage devient un
-fantôme bloqué à jamais à l'endroit de sa mort — ni esprit guérisseur, ni récupération de
-cadavre, ni résurrection par un sort ou par un autre joueur. Ta mort est annoncée à tout le
-serveur. Vérifie ton état avec `.hardcore status` ; seul un administrateur peut te réanimer
-(`.hardcore revive`). Un personnage **sans** Hardcore réapparaît normalement (esprit guérisseur
-ou résurrection classique).
+**niveau 1** (ou jusqu'au **niveau 55** pour un chevalier de la mort) : parle-lui et choisis le
+défi souhaité, par exemple **Activer le mode Hardcore**. À partir de là, la mort est définitive :
+ton personnage devient un fantôme bloqué à jamais à l'endroit de sa mort — ni esprit guérisseur,
+ni récupération de cadavre, ni résurrection par un sort ou par un autre joueur. Ta mort est
+annoncée à tout le serveur. Vérifie ton état avec `.hardcore status` ; seul un administrateur
+peut te réanimer (`.hardcore revive`). Un personnage **sans** Hardcore réapparaît normalement
+(esprit guérisseur ou résurrection classique).
+
+D'autres défis sont proposés au Shrine (Semi-Hardcore, équipement auto-fabriqué, qualité
+d'équipement, XP lente/très lente, XP quêtes, Iron Man) ; certains sont exclusifs entre eux et
+disparaissent du menu dès qu'un défi incompatible est activé.
 
 *Si la liste des royaumes reste vide ou si la machine du serveur n'apparaît pas dans Tailscale :
 vérifie que Tailscale affiche bien « Connected », puis préviens-moi.*

@@ -2,6 +2,9 @@
 
 > **Status: executed on 2026-10-24.** This document is kept as a migration record. The destructive
 > steps (character wipe) must not be re-run as-is.
+>
+> **Update 2026-10-24:** the live config was later switched to all eight challenges enabled
+> (`*.Enable = 1`); the Hardcore-only values in Phase C describe the initial rollout.
 
 ## Context
 

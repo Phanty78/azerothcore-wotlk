@@ -396,15 +396,16 @@ personnages qui l'ont activé connaissent la mort définitive. Le module `mod-ch
 configure dans `env/dist/etc/modules/challenge_modes.conf` :
 
 - `ChallengeModes.Enable = 1` — active le module de défis ;
-- `Hardcore.Enable = 1` — active le défi Hardcore ;
+- `Hardcore.Enable = 1`, `SemiHardcore.Enable = 1`, `SelfCrafted.Enable = 1`,
+  `ItemQualityLevel.Enable = 1`, `SlowXpGain.Enable = 1`, `VerySlowXpGain.Enable = 1`,
+  `QuestXpOnly.Enable = 1`, `IronMan.Enable = 1` — tous les défis sont proposés au Shrine ;
 - `Hardcore.AnnounceDeaths = 1` — annonce chaque mort Hardcore à tout le serveur ;
-- `Hardcore.LogDeaths = 1` — journalise chaque mort dans `hardcore_deaths` ;
-- tous les autres `*.Enable = 0` (`SemiHardcore`, `SelfCrafted`, `ItemQualityLevel`, `SlowXpGain`,
-  `VerySlowXpGain`, `QuestXpOnly`, `IronMan`) : seuls les défis activés apparaissent au Shrine.
+- `Hardcore.LogDeaths = 1` — journalise chaque mort dans `hardcore_deaths`.
 
-Ces sept valeurs à 0 sont des **surcharges locales** : le `challenge_modes.conf.dist` du module les
-livre à 1. Si le fichier live est supprimé ou régénéré depuis le `.dist`, remettre ces sept
-`*.Enable` à 0 avant de redémarrer.
+Le module gère les exclusivités : `Hardcore`/`SemiHardcore`, `SelfCrafted`/`IronMan` et
+`SlowXpGain`/`VerySlowXpGain` ne peuvent pas être combinés ; dès qu'un défi d'une paire est activé,
+l'autre disparaît du menu. Le `challenge_modes.conf.dist` du module livre déjà tous les défis à 1 :
+la config live est alignée.
 
 Le module n'est pas versionné dans ce dépôt : un checkout neuf doit cloner
 `modules/mod-challenge-modes`, se placer sur le commit `1930525` puis appliquer les patchs locaux
