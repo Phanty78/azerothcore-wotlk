@@ -266,7 +266,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Régénération −20 % | `conf/dist/env.ac` (`AC_RATE_HEALTH`/`AC_RATE_MANA`) | ticks de vie/mana des joueurs ×0,8 |
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
-| Mort définitive | Module `modules/mod-hardcore` (vendored, patché global) | mode serveur entier : mort → fantôme verrouillé sur place ; sauvetage GM `.hardcore revive` ; journal `hardcore_deaths` |
+| Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
 | Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
@@ -376,25 +376,55 @@ pas de point (ex. `server info`) — et seules les commandes autorisées en cons
 
 Réflexes de départ : `.commands` (liste tout ce que ton niveau autorise) et `.help <commande>`.
 
-### Réanimer un personnage — le plus important ici (mode hardcore)
+### Réanimer un personnage — le plus important ici (mode Hardcore)
 
 ```text
 .hardcore revive [nom_du_personnage]   # cible sélectionnée sinon soi-même ; fonctionne SUR UN PERSONNAGE HORS LIGNE
+.hardcore status                       # état Hardcore du personnage (accessible à tous)
 ```
 
-C'est la **seule** façon de sortir de la mort définitive : ni esprit guérisseur, ni récupération
-de cadavre, ni résurrection par un sort ou par un autre joueur — et `.revive` / `.group revive`
-ne marchent plus sur un personnage tombé. Le personnage **reste hardcore** : sa prochaine mort
-est de nouveau définitive. Pour un ami hors ligne, la résurrection est enregistrée, effective à
-sa prochaine connexion.
+`.hardcore revive` est la **seule** façon de sortir de la mort définitive : ni esprit guérisseur,
+ni récupération de cadavre, ni résurrection par un sort ou par un autre joueur — et `.revive` /
+`.group revive` ne marchent pas sur un personnage Hardcore tombé. La commande cible le personnage
+sélectionné, sinon toi-même, et fonctionne sur un personnage **hors ligne** : la résurrection est
+alors enregistrée et devient effective à sa prochaine connexion. Le personnage **reste Hardcore** :
+sa prochaine mort est de nouveau définitive. `.hardcore status` affiche l'état du personnage
+(`Hardcore : ACTIVÉ`, `Hardcore : TOMBÉ` ou `Hardcore : désactivé`).
 
-Le module mod-hardcore (mode global, politique ghost) se configure dans
-`env/dist/etc/modules/mod_hardcore.conf` (clés `Hardcore.Enable`, `Hardcore.DeathPolicy`,
-`Hardcore.MinLevelToFlag`, `Hardcore.AnnounceDeaths` ; surchargeables par variables
-d'environnement `AC_HARDCORE_*`, rechargées par `.reload config` ; le cache des flags se
-recharge seulement au démarrage). Exempter durablement un personnage :
-`INSERT INTO hardcore_flags (guid, enabled, fallen) VALUES (<guid>, 0, 0);` puis redémarrer.
-Journal des morts : table `hardcore_deaths` (base `acore_characters`).
+Le mode Hardcore est **opt-in par personnage** via le Shrine of Challenge (voir §9) : seuls les
+personnages qui l'ont activé connaissent la mort définitive. Le module `mod-challenge-modes` se
+configure dans `env/dist/etc/modules/challenge_modes.conf` :
+
+- `ChallengeModes.Enable = 1` — active le module de défis ;
+- `Hardcore.Enable = 1` — active le défi Hardcore ;
+- `Hardcore.AnnounceDeaths = 1` — annonce chaque mort Hardcore à tout le serveur ;
+- `Hardcore.LogDeaths = 1` — journalise chaque mort dans `hardcore_deaths` ;
+- tous les autres `*.Enable = 0` (`SemiHardcore`, `SelfCrafted`, `ItemQualityLevel`, `SlowXpGain`,
+  `VerySlowXpGain`, `QuestXpOnly`, `IronMan`) : seuls les défis activés apparaissent au Shrine.
+
+Prérequis : `EnablePlayerSettings = 1` dans `env/dist/etc/worldserver.conf` — sans lui, les réglages
+de défi ne sont pas conservés d'une connexion à l'autre. Le Shrine of Challenge et son texte
+français viennent de deux SQL à importer **manuellement** dans `acore_world` (le serveur peut rester
+allumé ; le sanctuaire apparaît après redémarrage) :
+
+```bash
+docker exec -i ac-database sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" acore_world' \
+  < modules/mod-challenge-modes/data/sql/db-world/base/challenge_mode_gobject.sql
+docker exec -i ac-database sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" acore_world' \
+  < modules/mod-challenge-modes/data/sql/db-world/base/challenge_mode_gossip_fr.sql
+```
+
+Journal des morts : table `hardcore_deaths` (base `acore_characters`), créée automatiquement au
+démarrage du worldserver.
+
+> ℹ️ **Base de personnages remise à zéro** : tous les personnages ont été effacés pour repartir de
+> zéro (les comptes et les tables système sont conservés). Le personnage du bot d'hôtel des ventes
+> a disparu avec eux : l'AH bot est donc **désactivé** tant qu'un nouveau personnage bot n'existe
+> pas. Pour le réactiver : créer un personnage, relever son guid
+> (`SELECT guid, name FROM characters ORDER BY guid DESC LIMIT 5;`), puis renseigner
+> `AuctionHouseBot.GUIDs = <guid>` et `AuctionHouseBot.EnableSeller = true` dans
+> `env/dist/etc/modules/mod_ahbot.conf`, et redémarrer `ac-worldserver`
+> (`docker compose restart ac-worldserver`).
 
 ### Serveur
 

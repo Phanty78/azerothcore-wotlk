@@ -35,10 +35,15 @@ Laisse Tailscale **allumé pendant que tu joues** (icône dans la barre des tâc
 2. Connecte-toi avec l'identifiant et le mot de passe que je t'ai donnés, choisis le royaume
    **AzerothCore** (il doit apparaître **en ligne**), crée ton personnage et entre dans le monde.
 
-⚠️ **La mort est définitive sur ce serveur.** Une fois ton personnage tué, il devient un
-fantôme bloqué à jamais à l'endroit de sa mort : ni esprit guérisseur, ni récupération de
-cadavre, ni résurrection par un autre joueur. Ta mort est annoncée à tout le serveur.
-Seul un administrateur peut te réanimer. Vérifie ton état avec `.hardcore status`.
+⚠️ **La mort n'est définitive que si tu as activé le mode Hardcore.** Le **Shrine of
+Challenge** — une antique idole dans le cimetière de la zone de départ — n'est visible qu'au
+**niveau 1** (ou jusqu'au **niveau 55** pour un chevalier de la mort) : parle-lui et choisis
+**Activer le mode Hardcore**. À partir de là, la mort est définitive : ton personnage devient un
+fantôme bloqué à jamais à l'endroit de sa mort — ni esprit guérisseur, ni récupération de
+cadavre, ni résurrection par un sort ou par un autre joueur. Ta mort est annoncée à tout le
+serveur. Vérifie ton état avec `.hardcore status` ; seul un administrateur peut te réanimer
+(`.hardcore revive`). Un personnage **sans** Hardcore réapparaît normalement (esprit guérisseur
+ou résurrection classique).
 
 *Si la liste des royaumes reste vide ou si la machine du serveur n'apparaît pas dans Tailscale :
 vérifie que Tailscale affiche bien « Connected », puis préviens-moi.*
@@ -58,8 +63,8 @@ l'**hydratation**, qui baissent avec le temps de jeu.
   commencent dès qu'une jauge atteint le seuil critique (**10 %** ou moins par défaut) et
   s'aggravent à **0 %**. Avec l'option létale désactivée (`Lethal=0`, le défaut), ils ne peuvent
   **jamais te tuer** : ils te laissent au moins 1 point de vie. Si l'administrateur active
-  `Lethal=1`, tu peux mourir de faim ou de soif — et sur ce serveur, **la mort reste définitive**,
-  hardcore oblige.
+  `Lethal=1`, tu peux mourir de faim ou de soif — si tu as activé le mode Hardcore, la mort reste
+  définitive.
 - En **champ de bataille** et en **arène**, les dégâts de faim et de soif ne s'appliquent
   **jamais** (les jauges peuvent continuer à baisser et les alertes à s'afficher selon la
   configuration).
