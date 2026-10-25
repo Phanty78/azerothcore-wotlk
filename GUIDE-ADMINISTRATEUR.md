@@ -269,7 +269,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
-| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
+| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et dégâts d'épuisement dus à la soif seule ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
@@ -303,19 +303,54 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   son `.conf`, sans écraser un fichier existant.
   Le module est livré avec `Enable = 1` mais **`Mode = off` par défaut** : il est installé et
   sans effet tant que le mode n'est pas changé. Modes : `off`, `advisory` (jauges, messages et
-  résumé de login, **aucun dégât**) et `survival` (dégâts dès qu'une jauge entre dans la bande
-  critique, `<= CriticalThreshold`, 10 par défaut : `StarvingDamagePct` toutes les
-  `StarvingIntervalMs` ; dès qu'une jauge est à 0, `DehydratedDamagePct` toutes les
-  `DehydratedIntervalMs` ; les deux à 0 appliquent `DoubleEmptyMultiplier` une seule fois).
+  résumé de login, **aucun dégât**) et `survival` (états de faim, plus des dégâts d'épuisement
+  dus **uniquement à l'hydratation** : dès que l'hydratation entre dans la bande critique,
+  `<= CriticalThreshold` (10 par défaut), `StarvingDamagePct` (0,50 % des PV max, borné 0–100,
+  nom historique conservé) toutes les `StarvingIntervalMs` (10 000 ms, minimum 1 000) ; à 0,
+  `DehydratedDamagePct` (1,00 %, borné 0–100) toutes les `DehydratedIntervalMs` (5 000 ms,
+  minimum 1 000) ; les deux jauges à 0 multiplient une seule fois ce pourcentage par
+  `DoubleEmptyMultiplier` (1,50, borné 1,00–10,00), sans jamais additionner faim et soif).
+  La faim n'inflige donc **aucun dégât** : une satiété critique ou nulle ne retire pas de PV par
+  elle-même.
   `Lethal = 0` par défaut : même en `survival`, les dégâts ne peuvent pas tuer (plancher 1 PV) ;
-  `Lethal = 1` autorise la mort — définitive uniquement pour un personnage ayant activé le mode Hardcore.
+  `Lethal = 1` autorise la mort par ces dégâts d'épuisement — définitive uniquement pour un
+  personnage ayant activé le mode Hardcore.
   En champ de bataille et en arène, les dégâts d'épuisement sont **toujours** supprimés, même si
   `PauseInBattleground = 0` ou `PauseInArena = 0` ; ces deux clés ne contrôlent que la
   décroissance, les alertes et les mises à jour addon.
   Rechargement à chaud : `.reload config` (sinon `docker compose restart ac-worldserver`) ; les
-  changements s'appliquent au tick suivant. Exception : passer `Enable` de `0` à `1` ne charge
-  pas l'état des joueurs déjà en ligne — ils doivent se reconnecter ou être initialisés avec
-  `.hungerthirst set` (les nouvelles connexions sont normales).
+  changements s'appliquent au tick suivant. Deux exceptions : passer `Enable` de `0` à `1` ne
+  charge pas l'état des joueurs déjà en ligne — ils doivent se reconnecter ou être initialisés
+  avec `.hungerthirst set` (les nouvelles connexions sont normales) ; et les deux pourcentages
+  de pénalité (`HungerStatePenaltyPct`, `HungerStarvingPenaltyPct`) sont gravés dans les auras
+  au démarrage — les modifier exige `docker compose restart ac-worldserver`, un
+  `.reload config` ne suffit pas.
+- **États de faim (`survival`)** : la satiété pilote deux debuffs visibles et exclusifs,
+  entièrement gérés côté serveur (aucun patch client). `HungerStates = 1` par défaut les
+  active ; en `survival`, à `0`, la faim reste suivie mais n'a **aucun effet de jeu**.
+  - Satiété `<= WarningThreshold` (**30** par défaut, borné 0–100, strictement supérieur à
+    `CriticalThreshold`) : sort **52749**, « Appétit vorace » / "Voracious Appetite" (icône
+    cannibalisme), vitesse de déplacement −10 %, dégâts infligés −10 %, dégâts subis +10 %.
+    Ces trois valeurs viennent de `HungerStatePenaltyPct` (10,00 par défaut, borné 0–90).
+  - Satiété à 0 : sort **55316**, « Faim dévorante » / "Ravenous Hunger" (icône stoïcisme),
+    qui remplace le précédent ; les trois malus passent à 30 %
+    (`HungerStarvingPenaltyPct`, 30,00 par défaut, borné 0–90).
+  - L'état affaibli s'applique dès que la satiété atteint `WarningThreshold` ou moins et ne se
+    retire qu'une fois remontée strictement au-dessus de `WarningThreshold + 2` (hystérésis) :
+    avec les valeurs par défaut, entrée à 30 ou moins, sortie au-dessus de 32. Une bouchée de
+    nourriture depuis 0 rend 30 points (`FoodSatietyGain = 30,00`), donc reste dans l'état
+    affaibli ; la suivante en sort.
+  - Les auras sont négatives, indissipables et réconciliées à chaque tick : elles reviennent
+    seules après connexion ou résurrection, et disparaissent dès que le seuil n'est plus
+    atteint, que le mode quitte `survival` ou que `HungerStates = 0`.
+  - Le client affiche le nom et l'icône des deux sorts détournés, mais le **tooltip garde le
+    texte Blizzard d'origine**, qui ne décrit pas ces malus. Le message de chat envoyé à
+    l'apparition (« Your hunger weakens you… », « You are starving… ») fait foi et rappelle
+    les pourcentages réels.
+  - En `survival`, les alertes de bande de satiété sont supprimées (remplacées par ces messages
+    d'état quand `HungerStates = 1`) ; les alertes d'hydratation restent inchangées. La soif
+    garde pour l'instant ses avertissements et ses dégâts : ses propres états sont prévus en
+    phase 2.
 - **Table** : `acore_characters.hunger_thirst_state` (`guid`, `satiety`, `hydration`,
   `updated_at`), créée automatiquement au démarrage — aucun SQL à importer. Pour repartir de
   zéro, utiliser `.hungerthirst reset` (ou supprimer la ligne d'un personnage **hors ligne**).

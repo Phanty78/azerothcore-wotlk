@@ -62,19 +62,36 @@ tout se passe côté serveur. Ton personnage a alors deux jauges de 0 à 100, la
 l'**hydratation**, qui baissent avec le temps de jeu.
 
 - Tape **`.hungerthirst`** (ou `.hungerthirst status`) pour connaître tes deux jauges.
-- Des messages apparaissent automatiquement à **25 %** (avertissement), à **10 %** (critique)
-  et à **0 %** (jauge vide) — seuils par défaut, réglables par l'administrateur.
+- Des messages apparaissent automatiquement à **30 %** (avertissement, seuil par défaut), à
+  **10 %** (critique) et à **0 %** (jauge vide) — seuils réglables par l'administrateur. En mode
+  `survival`, ces messages ne concernent plus que la **soif** : la faim, elle, s'affiche par des
+  états (voir ci-dessous).
 - **Mange** et **bois** pour les remonter : les objets de nourriture et de boisson restaurent la
   jauge correspondante. Les buffs de type « Well Fed » ne comptent pas.
-- En mode `advisory`, la faim et la soif ne font **aucun dégât**. En mode `survival`, les dégâts
-  commencent dès qu'une jauge atteint le seuil critique (**10 %** ou moins par défaut) et
-  s'aggravent à **0 %**. Avec l'option létale désactivée (`Lethal=0`, le défaut), ils ne peuvent
-  **jamais te tuer** : ils te laissent au moins 1 point de vie. Si l'administrateur active
-  `Lethal=1`, tu peux mourir de faim ou de soif — si tu as activé le mode Hardcore, la mort reste
+- En mode `advisory`, la faim et la soif ne font **aucun dégât** et la faim n'applique **aucun
+  état** : tu es seulement averti par les messages. En mode `survival`, la faim ne blesse plus :
+  elle applique des **états visibles** (une icône de debuff dans ta barre), tandis que la soif
+  conserve ses dégâts d'épuisement (voir plus bas). Si l'administrateur désactive les états
+  (`HungerStates=0`), la faim n'a plus **aucun effet de jeu** — mais la soif continue de
+  blesser.
+- **États de faim** (mode `survival`) : dès que la satiété tombe à **30 % ou moins**, tu
+  reçois **« Appétit vorace »** : **-10 %** de vitesse de déplacement, **-10 %** de dégâts
+  infligés et **+10 %** de dégâts subis. À **0 %**, il devient **« Faim dévorante »** : ces
+  trois malus passent à **30 %**. L'infobulle de l'icône garde le texte d'origine de Blizzard
+  et ne décrit pas ces effets : fie-toi au message de chat affiché quand l'état apparaît.
+  L'état disparaît quand la satiété repasse au-dessus du seuil (30 %) plus 2 points ; depuis
+  0 %, une seule bouchée ne te ramène qu'à 30 %, donc tu restes affaibli et une seconde
+  bouchée est parfois nécessaire. L'état revient de lui-même après une mort ou une
+  reconnexion tant que la jauge reste basse.
+- En mode `survival`, la **soif** inflige des dégâts d'épuisement dès que l'hydratation atteint
+  le seuil critique (**10 %** ou moins par défaut) ; ils s'aggravent à **0 %**. Si les deux
+  jauges sont à **0 %**, les dégâts de soif sont **amplifiés**. Avec `Lethal=0` (le défaut),
+  ils ne peuvent **jamais te tuer** : ils te laissent au moins 1 point de vie. Avec
+  `Lethal=1`, la soif peut te tuer — et si tu as activé le mode Hardcore, la mort est
   définitive.
-- En **champ de bataille** et en **arène**, les dégâts de faim et de soif ne s'appliquent
-  **jamais** (les jauges peuvent continuer à baisser et les alertes à s'afficher selon la
-  configuration).
+- En **champ de bataille** et en **arène**, les dégâts d'épuisement dus à la **soif** ne
+  s'appliquent **jamais** (les jauges peuvent continuer à baisser et les alertes à s'afficher
+  selon la configuration).
 
 ### Addon d'affichage — optionnel
 
