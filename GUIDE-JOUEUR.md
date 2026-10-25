@@ -63,17 +63,17 @@ l'**hydratation**, qui baissent avec le temps de jeu.
 
 - Tape **`.hungerthirst`** (ou `.hungerthirst status`) pour connaître tes deux jauges.
 - Des messages apparaissent automatiquement à **30 %** (avertissement, seuil par défaut), à
-  **10 %** (critique) et à **0 %** (jauge vide) — seuils réglables par l'administrateur. En mode
-  `survival`, ces messages ne concernent plus que la **soif** : la faim, elle, s'affiche par des
-  états (voir ci-dessous).
+  **10 %** (critique) et à **0 %** (jauge vide) — seuils réglables par l'administrateur. Ils ne
+  s'affichent qu'en mode `advisory` : en mode `survival`, les **états** ci-dessous les
+  remplacent.
 - **Mange** et **bois** pour les remonter : les objets de nourriture et de boisson restaurent la
   jauge correspondante. Les buffs de type « Well Fed » ne comptent pas.
-- En mode `advisory`, la faim et la soif ne font **aucun dégât** et la faim n'applique **aucun
-  état** : tu es seulement averti par les messages. En mode `survival`, la faim ne blesse plus :
-  elle applique des **états visibles** (une icône de debuff dans ta barre), tandis que la soif
-  conserve ses dégâts d'épuisement (voir plus bas). Si l'administrateur désactive les états
-  (`HungerStates=0`), la faim n'a plus **aucun effet de jeu** — mais la soif continue de
-  blesser.
+- En mode `advisory`, la faim et la soif ne font **aucun dégât** et n'appliquent **aucun
+  état** : tu es seulement averti par les messages. En mode `survival`, chaque jauge applique
+  un **état visible** (une icône de debuff dans ta barre), mais aucune ne blesse : ni la faim
+  ni la soif n'infligent de dégâts. Si l'administrateur désactive les états d'une jauge
+  (`HungerStates=0` pour la faim, `ThirstStates=0` pour la soif), celle-ci n'a plus **aucun
+  effet de jeu**.
 - **États de faim** (mode `survival`) : dès que la satiété tombe à **30 % ou moins**, tu
   reçois **« Appétit vorace »** : **-10 %** de vitesse de déplacement, **-10 %** de dégâts
   infligés et **+10 %** de dégâts subis. À **0 %**, il devient **« Faim dévorante »** : ces
@@ -83,15 +83,28 @@ l'**hydratation**, qui baissent avec le temps de jeu.
   0 %, une seule bouchée ne te ramène qu'à 30 %, donc tu restes affaibli et une seconde
   bouchée est parfois nécessaire. L'état revient de lui-même après une mort ou une
   reconnexion tant que la jauge reste basse.
-- En mode `survival`, la **soif** inflige des dégâts d'épuisement dès que l'hydratation atteint
-  le seuil critique (**10 %** ou moins par défaut) ; ils s'aggravent à **0 %**. Si les deux
-  jauges sont à **0 %**, les dégâts de soif sont **amplifiés**. Avec `Lethal=0` (le défaut),
-  ils ne peuvent **jamais te tuer** : ils te laissent au moins 1 point de vie. Avec
-  `Lethal=1`, la soif peut te tuer — et si tu as activé le mode Hardcore, la mort est
-  définitive.
-- En **champ de bataille** et en **arène**, les dégâts d'épuisement dus à la **soif** ne
-  s'appliquent **jamais** (les jauges peuvent continuer à baisser et les alertes à s'afficher
-  selon la configuration).
+- **États de soif** (mode `survival`) : dès que l'hydratation tombe à **30 % ou moins**, tu
+  reçois **« Drink »** (très soif) : **-10 %** de régénération de mana, **-10 %** de dégâts
+  magiques infligés et **-10 %** de soins prodigués. À **0 %**, il devient **« Drunken
+  Stupor »** (déshydraté) : ces trois malus passent à **30 %**. Un seul état de soif est actif
+  à la fois. La régénération réduite est celle qui vient de l'**Esprit** ; les bonus plats de
+  mana toutes les 5 secondes ne sont pas concernés. Les dégâts physiques ou à distance, ceux
+  de ton familier et les dégâts que tu subis ne le sont pas non plus. Comme pour la faim,
+  l'infobulle de l'icône garde le texte d'origine de Blizzard et ne décrit pas ces effets :
+  fie-toi au message de chat affiché quand l'état apparaît. L'état disparaît quand
+  l'hydratation repasse au-dessus du seuil (30 %) plus 2 points ; depuis **0 %**, une seule
+  boisson rend 35 points par défaut et suffit donc à sortir de l'état. L'état revient de
+  lui-même après une mort ou une reconnexion tant que la jauge reste basse.
+- **Brouillard visuel** : tant qu'un état de soif est actif, l'écran se brouille environ
+  **2 secondes toutes les 10 secondes**, et l'effet est plus fort à **0 %**. Il n'apparaît
+  jamais en mode `advisory`, quand le module est désactivé, en champ de bataille, en arène ni
+  à la mort.
+- **La soif ne blesse plus** : plus aucun dégât d'épuisement, plus de plancher à 1 point de
+  vie, plus de mort causée par la soif — même en mode Hardcore. L'ancienne option `Lethal`
+  n'existe plus : le module n'inflige plus aucun dégât.
+- En **champ de bataille** et en **arène**, avec la configuration par défaut, les jauges sont
+  figées, les états restent figés et le brouillard visuel est coupé. Si l'administrateur
+  désactive la pause correspondante, la décroissance, les états et le brouillard continuent.
 
 ### Addon d'affichage — optionnel
 

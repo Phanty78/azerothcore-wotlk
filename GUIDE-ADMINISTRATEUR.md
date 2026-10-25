@@ -269,7 +269,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
-| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et dégâts d'épuisement dus à la soif seule ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
+| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et états de soif (auras 43155/14869, `ThirstStates`, malus mana/sorts/soins, blur), **sans aucun dégât ni mort** ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
@@ -302,29 +302,33 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   dans le conteneur) — l'entrypoint copie désormais chaque `modules/*.conf.dist` manquant vers
   son `.conf`, sans écraser un fichier existant.
   Le module est livré avec `Enable = 1` mais **`Mode = off` par défaut** : il est installé et
-  sans effet tant que le mode n'est pas changé. Modes : `off`, `advisory` (jauges, messages et
-  résumé de login, **aucun dégât**) et `survival` (états de faim, plus des dégâts d'épuisement
-  dus **uniquement à l'hydratation** : dès que l'hydratation entre dans la bande critique,
-  `<= CriticalThreshold` (10 par défaut), `StarvingDamagePct` (0,50 % des PV max, borné 0–100,
-  nom historique conservé) toutes les `StarvingIntervalMs` (10 000 ms, minimum 1 000) ; à 0,
-  `DehydratedDamagePct` (1,00 %, borné 0–100) toutes les `DehydratedIntervalMs` (5 000 ms,
-  minimum 1 000) ; les deux jauges à 0 multiplient une seule fois ce pourcentage par
-  `DoubleEmptyMultiplier` (1,50, borné 1,00–10,00), sans jamais additionner faim et soif).
-  La faim n'inflige donc **aucun dégât** : une satiété critique ou nulle ne retire pas de PV par
-  elle-même.
-  `Lethal = 0` par défaut : même en `survival`, les dégâts ne peuvent pas tuer (plancher 1 PV) ;
-  `Lethal = 1` autorise la mort par ces dégâts d'épuisement — définitive uniquement pour un
-  personnage ayant activé le mode Hardcore.
-  En champ de bataille et en arène, les dégâts d'épuisement sont **toujours** supprimés, même si
-  `PauseInBattleground = 0` ou `PauseInArena = 0` ; ces deux clés ne contrôlent que la
-  décroissance, les alertes et les mises à jour addon.
+  sans effet tant que le mode n'est pas changé. Modes : `off` (rien n'est simulé), `advisory`
+  (jauges, messages et résumé de login ; **aucun effet de jeu** : ni état, ni blur) et
+  `survival` (états de faim et de soif, **aucun dégât** : le module ne retire plus de PV et ne
+  peut plus tuer, même un personnage Hardcore).
+  Le modèle de dégâts d'épuisement a été supprimé : les clés `Lethal`, `LethalRampPct`,
+  `LethalMaxDamagePct`, `StarvingDamagePct`, `StarvingIntervalMs`, `DehydratedDamagePct`,
+  `DehydratedIntervalMs` et `DoubleEmptyMultiplier` n'existent plus (à retirer du fichier de
+  conf). Cinq clés les remplacent : `ThirstStates` (1 par défaut) active les états de soif ; les
+  deux pourcentages `ThirstStatePenaltyPct` (10,00, borné 0–90) et
+  `ThirstDehydratedPenaltyPct` (30,00, borné 0–90) ; enfin le blur `ThirstBlurIntervalMs`
+  (10 000 ms, minimum 1 000) et `ThirstBlurDurationMs` (2 000 ms, minimum 100).
+  `ThirstStates = 0` retire les deux auras d'état et le blur : la soif reste suivie sans effet.
+  Comme l'entrypoint n'écrase jamais un `.conf` existant, le fichier live doit être complété à
+  la main avec ces cinq clés après la mise à jour du module (et les anciennes clés de dégâts
+  supprimées).
+  En champ de bataille et en arène, le blur est coupé pendant la pause (par défaut
+  `PauseInBattleground = 1` et `PauseInArena = 1`) ; les auras d'état restent appliquées. Ces
+  clés contrôlent la décroissance, les alertes, les mises à jour addon et le blur, mais pas les
+  auras d'état.
   Rechargement à chaud : `.reload config` (sinon `docker compose restart ac-worldserver`) ; les
   changements s'appliquent au tick suivant. Deux exceptions : passer `Enable` de `0` à `1` ne
   charge pas l'état des joueurs déjà en ligne — ils doivent se reconnecter ou être initialisés
-  avec `.hungerthirst set` (les nouvelles connexions sont normales) ; et les deux pourcentages
-  de pénalité (`HungerStatePenaltyPct`, `HungerStarvingPenaltyPct`) sont gravés dans les auras
-  au démarrage — les modifier exige `docker compose restart ac-worldserver`, un
-  `.reload config` ne suffit pas.
+  avec `.hungerthirst set` (les nouvelles connexions sont normales) ; et les quatre pourcentages
+  de pénalité (`HungerStatePenaltyPct`, `HungerStarvingPenaltyPct`, `ThirstStatePenaltyPct`,
+  `ThirstDehydratedPenaltyPct`) sont gravés dans les auras au démarrage — les modifier exige
+  `docker compose restart ac-worldserver`, un `.reload config` ne suffit pas. `ThirstStates`,
+  l'intervalle et la durée du blur se rechargent à chaud.
 - **États de faim (`survival`)** : la satiété pilote deux debuffs visibles et exclusifs,
   entièrement gérés côté serveur (aucun patch client). `HungerStates = 1` par défaut les
   active ; en `survival`, à `0`, la faim reste suivie mais n'a **aucun effet de jeu**.
@@ -348,9 +352,47 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
     l'apparition (« Your hunger weakens you… », « You are starving… ») fait foi et rappelle
     les pourcentages réels.
   - En `survival`, les alertes de bande de satiété sont supprimées (remplacées par ces messages
-    d'état quand `HungerStates = 1`) ; les alertes d'hydratation restent inchangées. La soif
-    garde pour l'instant ses avertissements et ses dégâts : ses propres états sont prévus en
-    phase 2.
+    d'état quand `HungerStates = 1`) ; la soif a désormais ses propres états et messages (voir
+    ci-dessous). En `advisory`, les avertissements des deux jauges restent.
+- **États de soif (`survival`)** : l'hydratation pilote deux debuffs visibles et exclusifs,
+  entièrement gérés côté serveur (aucun patch client). `ThirstStates = 1` par défaut les
+  active ; à `0`, la soif reste suivie mais n'a **aucun effet de jeu** et le blur disparaît.
+  - Hydratation `<= WarningThreshold` (**30** par défaut, au-dessus de 0) : sort **43155**,
+    « Drink » (icône `INV_Drink_07`), qui réduit de `ThirstStatePenaltyPct` (10,00 par défaut,
+    borné 0–90) la régénération de mana, les **dégâts magiques infligés** et les **soins
+    prodigués**. Les dégâts physiques, à distance, des pets et les dégâts subis ne sont pas
+    concernés ; les soins *reçus* non plus.
+  - Hydratation à 0 : sort **14869**, « Drunken Stupor » (icône `INV_Drink_04`), qui remplace le
+    précédent ; les trois malus passent à 30 % (`ThirstDehydratedPenaltyPct`, 30,00 par défaut,
+    borné 0–90).
+  - La régénération de mana passe par l'aura canonique `SPELL_AURA_MOD_POWER_REGEN_PERCENT`
+    (110) : sans patch core, elle ne réduit que la part issue de l'**Esprit** (`power_regen`),
+    pas le mp5 plat (`power_regen_mp5`). Limite assumée du module seul ; les dégâts magiques et
+    les soins, eux, sont réduits exactement.
+  - L'hystérésis est la même que pour la faim : entrée à `WarningThreshold` ou moins, sortie
+    seulement au-dessus de `WarningThreshold + 2` (au-dessus de 32 avec les valeurs par défaut).
+    Avec les valeurs par défaut, une boisson depuis 0 rend 35 points
+    (`DrinkHydrationGain = 35,00`), donc sort directement de l'état déshydraté.
+  - **Blur** : tant qu'un état est actif, le client reçoit une pulsation visuelle de
+    `ThirstBlurDurationMs` (2 s) toutes les `ThirstBlurIntervalMs` (10 s), via le champ client
+    `PLAYER_FAKE_INEBRIATION` (aucune aura, aucun effet de jeu), intensité 35 pour « très soif »
+    et 60 pour « déshydraté ». Le champ est restauré à la sortie de l'état, à la mort, en pause,
+    à la déconnexion et au changement de mode ; il n'est pas persisté. Aucun blur en `advisory`,
+    en `off`, pendant une pause (mort, taxi, GM exempt, duel, BG/arène) ni avec
+    `ThirstStates = 0`. L'effet repose sur un champ lu par le client : à valider sur client réel
+    (repli par aura possible, non retenu pour l'instant).
+  - Les auras sont négatives, indissipables et réconciliées à chaque tick : elles reviennent
+    seules après connexion ou résurrection, et disparaissent dès que l'hydratation remonte dans
+    la bande normale, que le mode quitte `survival`, que `ThirstStates = 0`, ou si un des deux
+    sorts n'a pas pu être patché au démarrage (les états sont alors désactivés, erreur au log).
+  - Le client affiche le nom et l'icône des deux sorts Blizzard détournés : le **tooltip garde
+    le texte d'origine**, le message de chat (« Your thirst weakens you… » / « You are
+    dehydrated… ») fait foi et rappelle le pourcentage réel.
+  - En `survival`, les alertes de bande d'hydratation sont supprimées (remplacées par ces
+    messages quand `ThirstStates = 1`), comme pour la satiété ; en `advisory`, les
+    avertissements des deux jauges restent mais aucun état ni blur n'est appliqué.
+  - **Aucun dégât** : l'hydratation à 0 ne retire plus de PV et le module ne peut plus
+    provoquer de mort, y compris pour un personnage Hardcore.
 - **Table** : `acore_characters.hunger_thirst_state` (`guid`, `satiety`, `hydration`,
   `updated_at`), créée automatiquement au démarrage — aucun SQL à importer. Pour repartir de
   zéro, utiliser `.hungerthirst reset` (ou supprimer la ligne d'un personnage **hors ligne**).
@@ -373,6 +415,8 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   `modules/mod-hunger-thirst/client/Interface/AddOns/HungerThirst` (nom affiché
   **Hunger & Thirst**) ; les joueurs le copient dans `Interface/AddOns/` de leur client et
   utilisent `/hungerthirst` (ou `/ht`), `/hungerthirst icons` et `/hungerthirst reset`.
+  Le protocole addon conserve un champ `lethal` pour ne pas casser les installations
+  existantes, mais il vaut **toujours `0`** : l'addon n'affiche plus de mode létal.
 - **Rebuild Docker** après le clone initial ou une mise à jour du module :
   `docker compose build ac-worldserver && docker compose up -d`.
 
