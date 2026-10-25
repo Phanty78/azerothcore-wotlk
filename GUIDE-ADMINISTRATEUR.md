@@ -362,13 +362,23 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
     avec les valeurs par défaut, entrée à 30 ou moins, sortie au-dessus de 32. Une bouchée de
     nourriture depuis 0 rend 30 points (`FoodSatietyGain = 30,00`), donc reste dans l'état
     affaibli ; la suivante en sort.
+  - **Remède rappelé dans le chat** : les deux lignes d'état de faim — 52749 comme 55316 —
+    se terminent par le remède « Eat something » (point pour l'état affaibli, point
+    d'exclamation pour l'état affamé). Les seuils de sortie et les gains ne changent pas
+    (voir l'hystérésis ci-dessus) : une nourriture depuis 0 rend `FoodSatietyGain` (30,00) et
+    laisse dans l'état affaibli, la suivante fait sortir de l'état.
   - Les auras sont négatives, indissipables et réconciliées à chaque tick : elles reviennent
     seules après connexion ou résurrection, et disparaissent dès que le seuil n'est plus
     atteint, que le mode quitte `survival` ou que `HungerStates = 0`.
-  - Le client affiche le nom et l'icône des deux sorts détournés, mais le **tooltip garde le
-    texte Blizzard d'origine**, qui ne décrit pas ces malus. Le message de chat envoyé à
-    l'apparition (« Your hunger weakens you… », « You are starving… ») fait foi et rappelle
-    les pourcentages réels.
+  - **Tooltip** : le nom, l'icône et la description d'un sort viennent des fichiers DBC du
+    client ; le serveur ne peut pas les changer. Sans addon, le survol de 52749/55316 affiche
+    donc le nom et la description Blizzard d'origine, localisés par le client (en anglais
+    « Voracious Appetite » / « Ravenous Hunger »), qui ne décrivent pas ces malus : la
+    **ligne de chat** envoyée à l'apparition (« Your hunger weakens you… », « You are
+    starving… ») fait foi et rappelle les pourcentages réels. Un patch client MPQ/DBC serait
+    nécessaire pour un tooltip natif ; il n'est **pas** utilisé. L'addon optionnel mis à jour
+    (puce « Addon client » ci-dessous) remplace la description des quatre auras d'état par les
+    effets réels et le remède.
   - En `survival`, les alertes de bande de satiété sont supprimées (remplacées par ces messages
     d'état quand `HungerStates = 1`) ; la soif a désormais ses propres états et messages (voir
     ci-dessous). En `advisory`, les avertissements des deux jauges restent.
@@ -397,22 +407,34 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
     seulement au-dessus de `WarningThreshold + 2` (au-dessus de 32 avec les valeurs par défaut).
     Avec les valeurs par défaut, une boisson depuis 0 rend 35 points
     (`DrinkHydrationGain = 35,00`), donc sort directement de l'état déshydraté.
+  - **Remède rappelé dans le chat** : les deux lignes d'état de soif — 46583 (« Your thirst
+    weakens you… ») comme 14870 (« You are dehydrated… ») — se terminent par le remède
+    « Drink something » (point pour l'état très soif, point d'exclamation pour l'état
+    déshydraté). Les seuils de sortie et les gains ne changent pas (voir l'hystérésis
+    ci-dessus) : une boisson depuis 0 rend `DrinkHydrationGain` (35,00) et sort directement de
+    l'état déshydraté.
   - **Blur** : tant qu'un état est actif, le client reçoit une pulsation visuelle de
     `ThirstBlurDurationMs` (2 s) toutes les `ThirstBlurIntervalMs` (10 s), via le champ client
-    `PLAYER_FAKE_INEBRIATION` (aucune aura, aucun effet de jeu), intensité 35 pour « très soif »
-    et 60 pour « déshydraté ». Le champ est restauré à la sortie de l'état, à la mort, en pause,
-    à la déconnexion et au changement de mode ; il n'est pas persisté. Aucun blur en `advisory`,
-    en `off`, pendant une pause (mort, taxi, GM exempt, duel, BG/arène) ni avec
-    `ThirstStates = 0`. L'effet repose sur un champ lu par le client : à valider sur client réel
-    (repli par aura possible, non retenu pour l'instant).
+    `PLAYER_FAKE_INEBRIATION` (aucune aura, aucun effet de jeu), intensité **35** pour
+    « très soif » et **45** pour « déshydraté ». 45 reste **sous le seuil 50** à partir duquel
+    le client bascule en état d'ivresse : la pulsation reste purement visuelle, sans démarche
+    titubante ni glissement du personnage — c'était le défaut de l'ancienne valeur 60, qui
+    atteignait ce seuil sur le client réel. Le champ est restauré à la sortie de l'état, à la
+    mort, en pause, à la déconnexion et au changement de mode ; il n'est pas persisté. Aucun
+    blur en `advisory`, en `off`, pendant une pause (mort, taxi, GM exempt, duel, BG/arène) ni
+    avec `ThirstStates = 0`. L'effet repose sur un champ lu par le client : purement visuel,
+    sans aura ni effet de jeu ; un repli par aura reste possible mais n'est pas retenu.
   - Les auras sont négatives, indissipables et réconciliées à chaque tick : elles reviennent
     seules après connexion ou résurrection, et disparaissent dès que l'hydratation remonte dans
     la bande normale, que le mode quitte `survival`, que `ThirstStates = 0`, ou si un des deux
     sorts n'a pas pu être patché au démarrage (les états sont alors désactivés, erreur au log).
-  - Le client affiche le nom et l'icône des deux sorts détournés (« Cosmetic - Drink » /
-    « Drunken Stupor ») : le **tooltip garde le texte d'origine**, le message de chat
-    (« Your thirst weakens you… » / « You are dehydrated… ») fait foi et rappelle le
-    pourcentage réel.
+  - **Tooltip** : même limite que pour la faim — la description vient du DBC du client et ne
+    peut pas être changée côté serveur. Sans addon, 46583 et 14870 gardent le nom et le texte
+    Blizzard d'origine, localisés par le client (« Cosmetic - Drink » / « Drunken Stupor » en
+    anglais), qui ne décrivent pas ces malus : la ligne de chat (« Your thirst weakens you… »
+    / « You are dehydrated… ») fait foi et rappelle le pourcentage réel. L'addon optionnel mis
+    à jour (puce « Addon client » ci-dessous) remplace le tooltip des quatre auras d'état ;
+    sinon, seul un patch client MPQ/DBC le ferait, et il n'est **pas** utilisé.
   - En `survival`, les alertes de bande d'hydratation sont supprimées (remplacées par ces
     messages quand `ThirstStates = 1`), comme pour la satiété ; en `advisory`, les
     avertissements des deux jauges restent mais aucun état ni blur n'est appliqué.
@@ -442,6 +464,19 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   utilisent `/hungerthirst` (ou `/ht`), `/hungerthirst icons` et `/hungerthirst reset`.
   Le protocole addon conserve un champ `lethal` pour ne pas casser les installations
   existantes, mais il vaut **toujours `0`** : l'addon n'affiche plus de mode létal.
+  L'addon est **optionnel** (le serveur fonctionne sans lui) mais sa version à jour est
+  **recommandée** : elle remplace le tooltip des quatre auras d'état (52749, 55316, 46583,
+  14870) sur les icônes de buff/débuff du joueur par un texte français décrivant les effets
+  réels et le remède (manger / boire), ce que le serveur ne peut pas faire, les tooltips étant
+  lus dans les DBC du client (voir les états de faim et de soif ci-dessus). Le hook couvre les
+  icônes standard (le client 3.3.5a passe par `GameTooltip:SetUnitAura`) ; un addon tiers qui
+  appellerait directement `SetUnitBuff`/`SetUnitDebuff` n'est pas couvert et garderait le texte
+  Blizzard. Il affiche les pourcentages **par défaut** et renvoie à la ligne de chat pour les
+  valeurs réellement configurées : si `HungerStatePenaltyPct`, `HungerStarvingPenaltyPct`,
+  `ThirstStatePenaltyPct` ou `ThirstDehydratedPenaltyPct` sont modifiés, le tooltip de l'addon
+  reste sur 10/30 % et c'est le chat qui fait foi. Sans addon, le texte Blizzard reste affiché
+  et la ligne de chat fait foi. L'addon ne demande aucun patch client ; s'il a été ajouté
+  pendant une session, un `/reload` (ou une reconnexion) suffit à charger les tooltips.
 - **Rebuild Docker** après le clone initial ou une mise à jour du module :
   `docker compose build ac-worldserver && docker compose up -d`.
 

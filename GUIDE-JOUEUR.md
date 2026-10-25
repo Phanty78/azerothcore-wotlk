@@ -65,7 +65,8 @@ et la soif »** au Shrine of Challenge, au **niveau 1** (ou jusqu'au **niveau 55
 de la mort). L'option est **propre à chaque personnage** : un personnage qui ne l'a pas choisie n'a
 **aucune jauge, aucun message et aucun effet**. L'administrateur ne l'active plus pour tout le
 monde : il choisit seulement le réglage global des effets, et seuls les personnages qui ont pris
-l'option y sont soumis. Rien à installer : tout se passe côté serveur.
+l'option y sont soumis. Rien à installer pour l'option elle-même : tout se passe côté serveur ;
+l'addon d'affichage présenté plus bas reste facultatif.
 
 Le choix se fait **une seule fois** et est **définitif** : une fois l'option prise, elle disparaît
 du menu du Shrine et aucun retour en arrière n'est possible. Passé le niveau 1 (ou le niveau 55
@@ -95,29 +96,38 @@ restent consultables mais ne baissent pas et n'ont aucun effet.
 - **États de faim** (mode `survival`) : dès que la satiété tombe à **30 % ou moins**, tu
   reçois **« Appétit vorace »** : **-10 %** de vitesse de déplacement, **-10 %** de dégâts
   infligés et **+10 %** de dégâts subis. À **0 %**, il devient **« Faim dévorante »** : ces
-  trois malus passent à **30 %**. L'infobulle de l'icône garde le texte d'origine de Blizzard
-  et ne décrit pas ces effets : fie-toi au message de chat affiché quand l'état apparaît.
-  L'état disparaît quand la satiété repasse au-dessus du seuil (30 %) plus 2 points ; depuis
-  0 %, une seule bouchée ne te ramène qu'à 30 %, donc tu restes affaibli et une seconde
-  bouchée est parfois nécessaire. L'état revient de lui-même après une mort ou une
-  reconnexion tant que la jauge reste basse.
+  trois malus passent à **30 %**. L'infobulle d'origine ne décrit pas ces effets : avec
+  l'addon facultatif à jour, survoler le debuff affiche les vrais effets et le remède à
+  appliquer ; sans l'addon, le texte d'origine de Blizzard reste affiché et c'est le message
+  de chat qui fait foi. Aucun patch du client n'est utilisé.
+  Pour faire disparaître l'état, **mange** : il s'efface dès que la satiété repasse
+  **au-dessus de 32 %** (seuil de 30 % plus 2 points). Depuis **0 %**, une seule bouchée ne
+  te ramène qu'à 30 % : **« Faim dévorante »** devient **« Appétit vorace »**, et une seconde
+  bouchée est nécessaire pour que le debuff disparaisse. Le message de chat qui accompagne
+  l'état indique désormais « Eat something » (mange quelque chose). L'état revient de
+  lui-même après une mort ou une reconnexion tant que la jauge reste basse.
 - **États de soif** (mode `survival`) : dès que l'hydratation tombe à **30 % ou moins**, tu
-  reçois un **état de soif visible** (très soif, icône de boisson `INV_Drink_18`, nom affiché
-  **« Cosmetic - Drink »**) : **-10 %** de régénération de mana, **-10 %** de dégâts magiques
-  infligés et **-10 %** de soins prodigués. À **0 %**, il devient **« Drunken Stupor »**
-  (déshydraté, icône `INV_Drink_04`) : ces trois malus passent à **30 %**. Un seul état de soif
-  est actif à la fois. La régénération réduite est celle qui vient de l'**Esprit** ; les bonus
-  plats de mana toutes les 5 secondes ne sont pas concernés. Les dégâts physiques ou à distance,
-  ceux de ton familier et les dégâts que tu subis ne le sont pas non plus. Comme pour la faim,
-  l'infobulle de l'icône garde le texte d'origine de Blizzard et ne décrit pas ces effets :
-  fie-toi au message de chat affiché quand l'état apparaît. L'état disparaît quand
-  l'hydratation repasse au-dessus du seuil (30 %) plus 2 points ; depuis **0 %**, une seule
-  boisson rend 35 points par défaut et suffit donc à sortir de l'état. L'état revient de
+  reçois un **état de soif visible** (une icône de boisson dans ta barre) : **-10 %** de
+  régénération de mana, **-10 %** de dégâts magiques infligés et **-10 %** de soins
+  prodigués. À **0 %**, il devient l'état **déshydraté** : ces trois malus passent à **30 %**.
+  Un seul état de soif est actif à la fois. La régénération réduite est celle qui vient de
+  l'**Esprit** ; les bonus plats de mana toutes les 5 secondes ne sont pas concernés. Les
+  dégâts physiques ou à distance, ceux de ton familier et les dégâts que tu subis ne le sont
+  pas non plus. Comme pour la faim, l'infobulle d'origine ne décrit pas ces effets : avec
+  l'addon facultatif à jour, survoler le debuff affiche les vrais effets et le remède ; sans
+  l'addon, le texte d'origine de Blizzard reste affiché et c'est le message de chat qui fait
+  foi. Aucun patch du client n'est utilisé.
+  Pour faire disparaître l'état, **bois** : il s'efface dès que l'hydratation repasse
+  **au-dessus de 32 %** (seuil de 30 % plus 2 points). Depuis **0 %**, une seule boisson rend
+  35 points par défaut et suffit donc à sortir de l'état. Le message de chat qui accompagne
+  l'état indique désormais « Drink something » (bois quelque chose). L'état revient de
   lui-même après une mort ou une reconnexion tant que la jauge reste basse.
 - **Brouillard visuel** : tant qu'un état de soif est actif, l'écran se brouille environ
-  **2 secondes toutes les 10 secondes**, et l'effet est plus fort à **0 %**. Il n'apparaît
-  jamais en mode `advisory`, quand le module est désactivé, en champ de bataille, en arène ni
-  à la mort.
+  **2 secondes toutes les 10 secondes**, avec une intensité de **35** pour la soif et de
+  **45** à **0 %**. L'effet est **purement visuel** : **45** reste sous le seuil d'ivresse du
+  client, donc ton personnage n'est plus mis en posture d'ivresse, ne marche plus de travers
+  et ne glisse plus. Il n'apparaît jamais en mode `advisory`, quand le module est
+  désactivé, en champ de bataille, en arène ni à la mort.
 - **La soif ne blesse plus** : plus aucun dégât d'épuisement, plus de plancher à 1 point de
   vie, plus de mort causée par la soif — même en mode Hardcore. Le module n'inflige plus aucun
   dégât.
