@@ -1919,7 +1919,7 @@ void Player::Regenerate(Powers power)
                 bool recentCast = IsUnderLastManaUseEffect();
                 float ManaIncreaseRate = sWorld->getRate(RATE_POWER_MANA);
 
-                if (sWorld->getBoolConfig(CONFIG_LOW_LEVEL_REGEN_BOOST) && GetLevel() < 15)
+                if (!sWorld->getBoolConfig(CONFIG_VANILLA_REGEN) && sWorld->getBoolConfig(CONFIG_LOW_LEVEL_REGEN_BOOST) && GetLevel() < 15)
                     ManaIncreaseRate = sWorld->getRate(RATE_POWER_MANA) * (2.066f - (GetLevel() * 0.066f));
 
                 if (recentCast) // Trinity Updates Mana in intervals of 2s, which is correct
@@ -2034,7 +2034,9 @@ void Player::RegenerateHealth()
 
     float HealthIncreaseRate = sWorld->getRate(RATE_HEALTH);
 
-    if (sWorld->getBoolConfig(CONFIG_LOW_LEVEL_REGEN_BOOST) && GetLevel() < 15)
+    bool const vanillaRegen = sWorld->getBoolConfig(CONFIG_VANILLA_REGEN);
+
+    if (!vanillaRegen && sWorld->getBoolConfig(CONFIG_LOW_LEVEL_REGEN_BOOST) && GetLevel() < 15)
         HealthIncreaseRate = sWorld->getRate(RATE_HEALTH) * (2.066f - (GetLevel() * 0.066f));
 
     float addvalue = 0.0f;
@@ -2045,11 +2047,39 @@ void Player::RegenerateHealth()
     // normal regen case (maybe partly in combat case)
     else if (!IsInCombat() || HasRegenDuringCombatAura())
     {
-        addvalue = OCTRegenHPPerSpirit() * HealthIncreaseRate;
+        if (vanillaRegen)
+        {
+            // Vanilla 1.12 health per second from Spirit (CMaNGOS formulas), converted to the 2 second regen tick
+            float const spirit = GetStat(STAT_SPIRIT);
+            float vanillaHPPerSecond = 0.0f;
+            bool hasVanillaFormula = true;
+
+            switch (getClass())
+            {
+                case CLASS_DRUID:   vanillaHPPerSecond = 0.11f * spirit + 1.0f;  break;
+                case CLASS_HUNTER:  vanillaHPPerSecond = 0.43f * spirit - 5.5f;  break;
+                case CLASS_MAGE:    vanillaHPPerSecond = 0.11f * spirit + 1.0f;  break;
+                case CLASS_PALADIN: vanillaHPPerSecond = 0.25f * spirit;         break;
+                case CLASS_PRIEST:  vanillaHPPerSecond = 0.15f * spirit + 1.4f;  break;
+                case CLASS_ROGUE:   vanillaHPPerSecond = 0.84f * spirit - 13.0f; break;
+                case CLASS_SHAMAN:  vanillaHPPerSecond = 0.28f * spirit - 3.6f;  break;
+                case CLASS_WARLOCK: vanillaHPPerSecond = 0.12f * spirit + 1.5f;  break;
+                case CLASS_WARRIOR: vanillaHPPerSecond = 1.26f * spirit - 22.6f; break;
+                default:            hasVanillaFormula = false;                   break;
+            }
+
+            // Classes without a vanilla formula (death knight) keep the WotLK regen
+            if (hasVanillaFormula)
+                addvalue = vanillaHPPerSecond * 2.0f * HealthIncreaseRate;
+            else
+                addvalue = OCTRegenHPPerSpirit() * HealthIncreaseRate;
+        }
+        else
+            addvalue = OCTRegenHPPerSpirit() * HealthIncreaseRate;
 
         if (!IsStandState())
         {
-            addvalue *= 1.33f;
+            addvalue *= vanillaRegen ? 1.5f : 1.33f;
         }
 
         addvalue *= GetTotalAuraMultiplier(SPELL_AURA_MOD_HEALTH_REGEN_PERCENT);

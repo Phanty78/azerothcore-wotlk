@@ -3045,6 +3045,7 @@ void SpellMgr::LoadSpellInfoStore()
     }
 
     LoadCreatureImmunities();
+    LoadVanillaSpellCosts();
 
     LOG_INFO("server.loading", ">> Loaded Spell Custom Attributes in {} ms", GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
@@ -3084,6 +3085,54 @@ void SpellMgr::LoadSpellCooldownOverrides()
 bool SpellMgr::HasSpellCooldownOverride(uint32 spellId) const
 {
     return mSpellCooldownOverrideMap.find(spellId) != mSpellCooldownOverrideMap.end();
+}
+
+void SpellMgr::LoadVanillaSpellCosts()
+{
+    uint32 oldMSTime = getMSTime();
+
+    _vanillaSpellCosts.clear();
+
+    QueryResult result = WorldDatabase.Query("SELECT spell_id, mana_cost FROM vanilla_spell_cost");
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 vanilla spell costs");
+        LOG_INFO("server.loading", " ");
+        return;
+    }
+
+    uint32 count = 0;
+
+    do
+    {
+        Field* fields = result->Fetch();
+        uint32 spellId = fields[0].Get<uint32>();
+        int32 manaCost = fields[1].Get<int32>();
+
+        if (!GetSpellInfo(spellId))
+        {
+            LOG_ERROR("sql.sql", "Table `vanilla_spell_cost` has invalid spell id {}, skipped", spellId);
+            continue;
+        }
+
+        if (manaCost < 0)
+        {
+            LOG_ERROR("sql.sql", "Table `vanilla_spell_cost` has negative mana cost {} for spell id {}, skipped", manaCost, spellId);
+            continue;
+        }
+
+        _vanillaSpellCosts[spellId] = manaCost;
+        ++count;
+    } while (result->NextRow());
+
+    LOG_INFO("server.loading", ">> Loaded {} vanilla spell costs in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+    LOG_INFO("server.loading", " ");
+}
+
+int32 SpellMgr::GetVanillaSpellCost(uint32 spellId) const
+{
+    auto itr = _vanillaSpellCosts.find(spellId);
+    return itr != _vanillaSpellCosts.end() ? itr->second : -1;
 }
 
 SpellCooldownOverride SpellMgr::GetSpellCooldownOverride(uint32 spellId) const

@@ -2149,6 +2149,16 @@ WaterBreath.Timer = 180000
 EnableLowLevelRegenBoost = 0
 
 #
+#    VanillaRegen.Enable
+#        Description: Use the exact 1.12.1 player health/mana regeneration
+#                     formulas (class + Spirit) instead of the 3.3.5 gt*regen
+#                     DBC tables. Rate.Health/Rate.Mana still apply.
+#        Default:     0 - Disabled (3.3.5 tables)
+#                     1 - Enabled (vanilla 1.12.1 formulas)
+
+VanillaRegen.Enable = 0
+
+#
 #    Rate.MoveSpeed.Player
 #        Description: Movement speed rate for players.
 #        Default:     1

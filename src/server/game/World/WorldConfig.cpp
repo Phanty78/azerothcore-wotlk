@@ -297,6 +297,7 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<bool>(CONFIG_OBJECT_SPARKLES, "Visibility.ObjectSparkles", true);
 
     SetConfigValue<bool>(CONFIG_LOW_LEVEL_REGEN_BOOST, "EnableLowLevelRegenBoost", false);
+    SetConfigValue<bool>(CONFIG_VANILLA_REGEN, "VanillaRegen.Enable", false);
 
     SetConfigValue<bool>(CONFIG_OBJECT_QUEST_MARKERS, "Visibility.ObjectQuestMarkers", true);
 

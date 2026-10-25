@@ -2846,10 +2846,16 @@ int32 SpellInfo::CalcPowerCost(WorldObject const* caster, SpellSchoolMask school
         return 0;
     }
 
+    // Vanilla spell cost override from DB (players only)
+    int32 const vanillaCost = unitCaster->IsPlayer() ? sSpellMgr->GetVanillaSpellCost(Id) : -1;
+
     // Base powerCost
     int32 powerCost = ManaCost;
+    // Apply the override instead of the DBC mana cost
+    if (vanillaCost >= 0)
+        powerCost = vanillaCost;
     // PCT cost from total amount
-    if (ManaCostPercentage)
+    if (vanillaCost < 0 && ManaCostPercentage)
     {
         switch (PowerType)
         {

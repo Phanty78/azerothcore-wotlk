@@ -24,6 +24,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "Unit.h"
+#include "World.h"
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
 {
@@ -945,9 +946,40 @@ void Player::UpdateManaRegen()
         return;
     }
 
-    float Intellect = GetStat(STAT_INTELLECT);
-    // Mana regen from spirit and intellect
-    float power_regen = std::sqrt(Intellect) * OCTRegenMPPerSpirit();
+    bool const vanillaRegen = sWorld->getBoolConfig(CONFIG_VANILLA_REGEN);
+    float power_regen = 0.0f;
+
+    if (vanillaRegen)
+    {
+        // Vanilla 1.12 mana per second from Spirit (CMaNGOS formulas)
+        float const spirit = GetStat(STAT_SPIRIT);
+
+        switch (getClass())
+        {
+            case CLASS_MAGE:
+            case CLASS_PRIEST:
+                power_regen = (13.0f + spirit / 4.0f) * 0.5f;
+                break;
+            case CLASS_DRUID:
+            case CLASS_HUNTER:
+            case CLASS_PALADIN:
+            case CLASS_SHAMAN:
+                power_regen = (15.0f + spirit / 5.0f) * 0.5f;
+                break;
+            case CLASS_WARLOCK:
+                power_regen = (8.0f + spirit / 4.0f) * 0.5f;
+                break;
+            default:
+                break;
+        }
+    }
+    else
+    {
+        float Intellect = GetStat(STAT_INTELLECT);
+        // Mana regen from spirit and intellect
+        power_regen = std::sqrt(Intellect) * OCTRegenMPPerSpirit();
+    }
+
     // Apply PCT bonus from SPELL_AURA_MOD_POWER_REGEN_PERCENT aura on spirit base regen
     power_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, POWER_MANA);
 

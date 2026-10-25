@@ -263,7 +263,9 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 |---|---|---|
 | Groupes de 6 | `src/server/game/Groups/*`, `Map.cpp` | 6 joueurs par groupe, raid toujours à 40, LFG limité à 5 |
 | Créatures vanilla-like | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | normaux ×1,35 dégâts / ×1,20 PV / ×1,30 sorts ; élites ×1,40 / ×1,50 / ×1,30 ; partout y compris instances |
-| Régénération −20 % | `conf/dist/env.ac` (`AC_RATE_HEALTH`/`AC_RATE_MANA`) | ticks de vie/mana des joueurs ×0,8 |
+| Aggro +20 % | `conf/dist/env.ac` (`AC_RATE_CREATURE_AGGRO`) | rayon d'aggro des créatures ×1,20 (redémarrage requis) |
+| Régénération vanilla 1.12 | `VanillaRegen.Enable=1` (`AC_VANILLA_REGEN_ENABLE`), `AC_RATE_HEALTH`/`AC_RATE_MANA=1.0` | PV/mana hors combat recalculés avec les formules 1.12.1 (classe + Esprit), au lieu des tables DBC WotLK |
+| Coûts de mana vanilla | Table `vanilla_spell_cost` + `SpellInfo::CalcPowerCost` | coût plat 1.12.1 pour les sorts de dégâts/soins de joueur (rangs ≤ 60), avant talents/auras |
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |

@@ -1,3 +1,24 @@
+## Vanilla difficulty alignment (2026-10-25)
+
+### Added
+- `vanilla_spell_cost` world table and a `SpellInfo::CalcPowerCost` override that
+  restores the flat 1.12.1 mana cost of player damage/heal spells before talent
+  and aura cost modifiers. Data: `data/sql/updates/db_world/2026_10_25_01.sql`.
+- `VanillaRegen.Enable` (env: `AC_VANILLA_REGEN_ENABLE`) to use the exact 1.12.1
+  player HP/mana regeneration formulas (class + Spirit) instead of the 3.3.5
+  `gt*regen` DBC tables.
+
+### Changed
+- Creature aggro radius is now +20% (`AC_RATE_CREATURE_AGGRO=1.20`).
+- `AC_RATE_HEALTH` and `AC_RATE_MANA` are 1.0 so the vanilla regen formulas are
+  not scaled down.
+
+### How to upgrade
+- Apply `data/sql/updates/db_world/2026_10_25_01.sql` (or rebuild `ac-db-import`).
+- Keep `AC_VANILLA_REGEN_ENABLE=1`, `AC_RATE_HEALTH=1.0`, `AC_RATE_MANA=1.0`,
+  `AC_RATE_CREATURE_AGGRO=1.20` in `conf/dist/env.ac`.
+- Restart the worldserver (aggro and spell-info caches are read at startup).
+
 ## 7.0.0-dev.1 | Commit: [0c4feb674444210da295751a0c4e5eefb9c771f1
 ](https://github.com/azerothcore/azerothcore-wotlk/commit/0c4feb674444210da295751a0c4e5eefb9c771f1
 
