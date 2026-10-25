@@ -102,12 +102,13 @@ restent consultables mais ne baissent pas et n'ont aucun effet.
   bouchée est parfois nécessaire. L'état revient de lui-même après une mort ou une
   reconnexion tant que la jauge reste basse.
 - **États de soif** (mode `survival`) : dès que l'hydratation tombe à **30 % ou moins**, tu
-  reçois **« Drink »** (très soif) : **-10 %** de régénération de mana, **-10 %** de dégâts
-  magiques infligés et **-10 %** de soins prodigués. À **0 %**, il devient **« Drunken
-  Stupor »** (déshydraté) : ces trois malus passent à **30 %**. Un seul état de soif est actif
-  à la fois. La régénération réduite est celle qui vient de l'**Esprit** ; les bonus plats de
-  mana toutes les 5 secondes ne sont pas concernés. Les dégâts physiques ou à distance, ceux
-  de ton familier et les dégâts que tu subis ne le sont pas non plus. Comme pour la faim,
+  reçois un **état de soif visible** (très soif, icône de boisson `INV_Drink_18`, nom affiché
+  **« Cosmetic - Drink »**) : **-10 %** de régénération de mana, **-10 %** de dégâts magiques
+  infligés et **-10 %** de soins prodigués. À **0 %**, il devient **« Drunken Stupor »**
+  (déshydraté, icône `INV_Drink_04`) : ces trois malus passent à **30 %**. Un seul état de soif
+  est actif à la fois. La régénération réduite est celle qui vient de l'**Esprit** ; les bonus
+  plats de mana toutes les 5 secondes ne sont pas concernés. Les dégâts physiques ou à distance,
+  ceux de ton familier et les dégâts que tu subis ne le sont pas non plus. Comme pour la faim,
   l'infobulle de l'icône garde le texte d'origine de Blizzard et ne décrit pas ces effets :
   fie-toi au message de chat affiché quand l'état apparaît. L'état disparaît quand
   l'hydratation repasse au-dessus du seuil (30 %) plus 2 points ; depuis **0 %**, une seule
