@@ -45,9 +45,12 @@ annoncée à tout le serveur. Vérifie ton état avec `.hardcore status` ; seul 
 peut te réanimer (`.hardcore revive`). Un personnage **sans** Hardcore réapparaît normalement
 (esprit guérisseur ou résurrection classique).
 
-D'autres défis sont proposés au Shrine (Semi-Hardcore, équipement auto-fabriqué, équipement
-fabriqué par un joueur, qualité d'équipement, XP lente/très lente, XP quêtes, Iron Man) ; certains
-sont exclusifs entre eux et disparaissent du menu dès qu'un défi incompatible est activé. Le défi
+D'autres options et défis sont proposés au Shrine : Semi-Hardcore, équipement auto-fabriqué,
+équipement fabriqué par un joueur, qualité d'équipement, XP lente/très lente, XP quêtes, Iron Man
+et **Faim et soif** (option **« Activer la faim et la soif »**). Certains défis sont exclusifs
+entre eux et disparaissent du menu dès qu'un défi incompatible est activé. L'option **Faim et
+soif**, elle, est **propre à chaque personnage** et **indépendante des défis** : elle se combine
+avec tous, ne bloque aucun autre choix et n'accorde **ni bonus d'XP ni récompense**. Le défi
 **équipement fabriqué par un joueur** n'autorise que les armes et armures fabriquées par n'importe
 quel joueur, toi compris et sans restriction de compte ; ton équipement de départ reste autorisé,
 et les consommables comme les objets non équipables ne sont pas concernés.
@@ -55,11 +58,27 @@ et les consommables comme les objets non équipables ne sont pas concernés.
 *Si la liste des royaumes reste vide ou si la machine du serveur n'apparaît pas dans Tailscale :
 vérifie que Tailscale affiche bien « Connected », puis préviens-moi.*
 
-## 3. Faim et soif (si activée par l'administrateur)
+## 3. Faim et soif (option au Shrine of Challenge)
 
-Le serveur peut activer un module de **faim et de soif**. Il ne demande aucune installation :
-tout se passe côté serveur. Ton personnage a alors deux jauges de 0 à 100, la **satiété** et
-l'**hydratation**, qui baissent avec le temps de jeu.
+La faim et la soif ne s'appliquent **qu'aux personnages qui ont choisi l'option « Activer la faim
+et la soif »** au Shrine of Challenge, au **niveau 1** (ou jusqu'au **niveau 55** pour un chevalier
+de la mort). L'option est **propre à chaque personnage** : un personnage qui ne l'a pas choisie n'a
+**aucune jauge, aucun message et aucun effet**. L'administrateur ne l'active plus pour tout le
+monde : il choisit seulement le réglage global des effets, et seuls les personnages qui ont pris
+l'option y sont soumis. Rien à installer : tout se passe côté serveur.
+
+Le choix se fait **une seule fois** et est **définitif** : une fois l'option prise, elle disparaît
+du menu du Shrine et aucun retour en arrière n'est possible. Passé le niveau 1 (ou le niveau 55
+pour un chevalier de la mort), le Shrine n'est plus accessible : un personnage qui ne l'a pas
+choisie à ce moment-là ne peut plus l'activer ensuite. Cette option est **indépendante des
+défis** : elle se combine avec eux, ne bloque aucun autre choix et n'accorde **ni bonus d'XP ni
+récompense**.
+
+Une fois l'option activée, ton personnage a deux jauges de 0 à 100, la **satiété** et
+l'**hydratation**, qui baissent avec le temps de jeu. Ce réglage global détermine ce qu'elles
+produisent : en `advisory`, un simple suivi avec avertissements ; en `survival`, les **états
+visibles** et le **brouillard visuel** décrits ci-dessous s'y ajoutent. En `off`, les jauges
+restent consultables mais ne baissent pas et n'ont aucun effet.
 
 - Tape **`.hungerthirst`** (ou `.hungerthirst status`) pour connaître tes deux jauges.
 - Des messages apparaissent automatiquement à **30 %** (avertissement, seuil par défaut), à
@@ -71,9 +90,8 @@ l'**hydratation**, qui baissent avec le temps de jeu.
 - En mode `advisory`, la faim et la soif ne font **aucun dégât** et n'appliquent **aucun
   état** : tu es seulement averti par les messages. En mode `survival`, chaque jauge applique
   un **état visible** (une icône de debuff dans ta barre), mais aucune ne blesse : ni la faim
-  ni la soif n'infligent de dégâts. Si l'administrateur désactive les états d'une jauge
-  (`HungerStates=0` pour la faim, `ThirstStates=0` pour la soif), celle-ci n'a plus **aucun
-  effet de jeu**.
+  ni la soif n'infligent de dégâts. L'administrateur peut désactiver les états d'une jauge ;
+  celle-ci n'a alors plus **aucun effet de jeu**.
 - **États de faim** (mode `survival`) : dès que la satiété tombe à **30 % ou moins**, tu
   reçois **« Appétit vorace »** : **-10 %** de vitesse de déplacement, **-10 %** de dégâts
   infligés et **+10 %** de dégâts subis. À **0 %**, il devient **« Faim dévorante »** : ces
@@ -100,17 +118,17 @@ l'**hydratation**, qui baissent avec le temps de jeu.
   jamais en mode `advisory`, quand le module est désactivé, en champ de bataille, en arène ni
   à la mort.
 - **La soif ne blesse plus** : plus aucun dégât d'épuisement, plus de plancher à 1 point de
-  vie, plus de mort causée par la soif — même en mode Hardcore. L'ancienne option `Lethal`
-  n'existe plus : le module n'inflige plus aucun dégât.
+  vie, plus de mort causée par la soif — même en mode Hardcore. Le module n'inflige plus aucun
+  dégât.
 - En **champ de bataille** et en **arène**, avec la configuration par défaut, les jauges sont
   figées, les états restent figés et le brouillard visuel est coupé. Si l'administrateur
   désactive la pause correspondante, la décroissance, les états et le brouillard continuent.
 
 ### Addon d'affichage — optionnel
 
-Un addon fourni avec le module affiche les deux jauges à l'écran. Il est **facultatif** : le
-client est déjà configuré et rien ne t'oblige à l'installer. Sans lui, les messages de chat et
-`.hungerthirst` continuent de fonctionner normalement.
+Un addon fourni avec le module affiche à l'écran les deux jauges du personnage qui a activé
+l'option. Il est **facultatif** : le client est déjà configuré et rien ne t'oblige à l'installer.
+Sans lui, les messages de chat et `.hungerthirst` continuent de fonctionner normalement.
 
 Pour l'installer :
 

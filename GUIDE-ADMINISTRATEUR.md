@@ -269,7 +269,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
-| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` | jauges satiété/hydratation, `Mode = off` par défaut ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et états de soif (auras 43155/14869, `ThirstStates`, malus mana/sorts/soins, blur), **sans aucun dégât ni mort** ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
+| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` ; pont local dans `modules/mod-challenge-modes` (`HungerThirstChallenge.Enable`) | **opt-in par personnage** via le Shrine (option « Activer la faim et la soif », réglage joueur d'index 10) ; nécessite côté module `HungerThirst.Mode = survival`, le pont retirant l'état et les auras d'état des personnages non inscrits à chaque mise à jour ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et de soif (auras 43155/14869, `ThirstStates`, malus mana/sorts/soins, blur), **sans aucun dégât ni mort** ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
@@ -291,6 +291,17 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
 
 ### Module faim et soif (`mod-hunger-thirst`)
 
+- **Activation par personnage (adaptation locale)** : le module n'est **pas** modifié ; il reste
+  le moteur de simulation. Sur ce serveur, il tourne en `Mode = survival` et c'est
+  `mod-challenge-modes` qui décide qui y est soumis : option « Activer la faim et la soif » au
+  Shrine (niveau 1 / DK ≤ 55), réglage joueur d'index 10, `LoadState` pour les inscrits et,
+  pour les autres à chaque mise à jour, `RemoveState` **et** le retrait explicite des quatre
+  auras d'état (52749/55316 pour la faim, 43155/14869 pour la soif). En `off`, l'option ne
+  produit aucun effet. Si le pont est **retiré de la compilation** (module de défis absent)
+  alors que `Mode = survival`, plus aucun pont ne retire les états : tous les personnages sont
+  simulés à leur connexion — repasser `Mode = off` avant. Désactiver le module de défis par
+  `ChallengeModes.Enable = 0` laisse au contraire le pont actif : il retire l'état et les auras
+  de tout le monde, donc personne n'a faim ni soif. Détails et clés : §11.
 - **Dépôt séparé** : le module vit désormais dans son propre dépôt git, cloné dans
   `modules/mod-hunger-thirst`. Il n'est **pas** versionné dans le dépôt du serveur : un
   `git clone` de ce dernier ne le contient pas. Conséquence : après un nouveau clone du dépôt
@@ -301,8 +312,13 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   le `.conf.dist` installé dans l'image (`/azerothcore/env/ref/etc/modules/mod_hunger_thirst.conf.dist`
   dans le conteneur) — l'entrypoint copie désormais chaque `modules/*.conf.dist` manquant vers
   son `.conf`, sans écraser un fichier existant.
-  Le module est livré avec `Enable = 1` mais **`Mode = off` par défaut** : il est installé et
-  sans effet tant que le mode n'est pas changé. Modes : `off` (rien n'est simulé), `advisory`
+  `HungerThirst.Enable` y est l'interrupteur maître du module faim et soif ; ne pas le confondre
+  avec `HungerThirstChallenge.Enable`, la clé du module de défis dans `challenge_modes.conf`
+  (voir §11).
+  Le module est livré avec **`Enable = 1`** et **`Mode = off` par défaut**. Sur ce serveur, la
+  config live utilise **`Mode = survival`** : c'est le pont de `mod-challenge-modes` qui limite
+  la simulation aux personnages inscrits (voir ci-dessus et §11) ; en `off`, l'option du Shrine
+  ne produit aucun effet. Modes : `off` (rien n'est simulé), `advisory`
   (jauges, messages et résumé de login ; **aucun effet de jeu** : ni état, ni blur) et
   `survival` (états de faim et de soif, **aucun dégât** : le module ne retire plus de PV et ne
   peut plus tuer, même un personnage Hardcore).
@@ -482,23 +498,28 @@ configure dans `env/dist/etc/modules/challenge_modes.conf` :
   `VerySlowXpGain.Enable = 1`, `QuestXpOnly.Enable = 1`, `IronMan.Enable = 1` — tous les défis
   sont proposés au Shrine ;
 - `Hardcore.AnnounceDeaths = 1` — annonce chaque mort Hardcore à tout le serveur ;
-- `Hardcore.LogDeaths = 1` — journalise chaque mort dans `hardcore_deaths`.
+- `Hardcore.LogDeaths = 1` — journalise chaque mort dans `hardcore_deaths` ;
+- `HungerThirstChallenge.Enable = 1` — ajoute au Shrine l'option locale « Activer la faim et la
+  soif » (voir « Faim et soif par personnage » ci-dessous).
 
 Le module gère les exclusivités : `Hardcore`/`SemiHardcore`, `SelfCrafted`/`IronMan` et
 `SlowXpGain`/`VerySlowXpGain` ne peuvent pas être combinés ; dès qu'un défi d'une paire est activé,
 l'autre disparaît du menu. `CraftedEquipmentOnly` est indépendant des autres défis et peut être
 combiné avec eux ; `SelfCrafted` reste la règle plus stricte, limitée aux objets fabriqués par le
-personnage lui-même. Le `challenge_modes.conf.dist` du module livre déjà tous les défis à 1 :
-la config live est alignée.
+personnage lui-même. Le `challenge_modes.conf.dist` du module livre déjà tous les défis à 1. La
+config live `env/dist/etc/modules/challenge_modes.conf`, créée par l'entrypoint avec `cp -n`,
+ne reçoit pas automatiquement les nouvelles clés de configuration : ajoute
+`HungerThirstChallenge.Enable = 1` à la main (voir « Faim et soif par personnage » ci-dessous).
 
 Le module n'est pas versionné dans ce dépôt : un checkout neuf doit cloner
 `modules/mod-challenge-modes`, se placer sur le commit `1930525` puis appliquer les patchs locaux
 (branche `local-adaptations`) avant de reconstruire l'image.
 
 Prérequis : `EnablePlayerSettings = 1` dans `env/dist/etc/worldserver.conf` — sans lui, les réglages
-de défi ne sont pas conservés d'une connexion à l'autre. Le Shrine of Challenge et son texte
-français viennent de deux SQL à importer **manuellement** dans `acore_world` (le serveur peut rester
-allumé ; le sanctuaire apparaît après redémarrage) :
+de défi (y compris l'option faim et soif, index 10) ne sont pas conservés d'une connexion à
+l'autre. Le Shrine of Challenge et son texte français viennent de deux SQL à importer
+**manuellement** dans `acore_world` (le serveur peut rester allumé ; le sanctuaire apparaît après
+redémarrage) :
 
 ```bash
 docker exec -i ac-database sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" acore_world' \
@@ -519,6 +540,53 @@ démarrage du worldserver.
 > `env/dist/etc/modules/mod_ahbot.conf`, et redémarrer `ac-worldserver`
 > (`docker compose restart ac-worldserver`). Les premières annonces apparaissent au premier cycle
 > de vente (10 minutes par défaut).
+
+### Faim et soif par personnage (adaptation locale)
+
+Le module `mod-challenge-modes` embarque une **adaptation locale** qui rend la faim et la soif
+**opt-in par personnage**. Le module `mod-hunger-thirst` n'est **pas modifié** : il reste le
+moteur, et le pont s'appuie sur son API publique `LoadState` / `RemoveState`.
+
+- **Option au Shrine** : au Shrine of Challenge (niveau 1 / DK ≤ 55), « Activer la faim et la
+  soif » inscrit le personnage. La sélection écrit un réglage joueur d'**index 10** (persisté
+  grâce à `EnablePlayerSettings = 1`, comme les autres défis) et le module de défis l'inscrit
+  dans la simulation en chargeant son état via `LoadState` ; le personnage est ensuite simulé
+  par le module faim et soif.
+- **Portée par personnage** : à chaque mise à jour, le pont appelle `RemoveState` **et** retire
+  explicitement les quatre auras d'état (52749, 55316 pour la faim ; 43155, 14869 pour la soif)
+  pour tout personnage qui n'a pas ce réglage. `RemoveState` efface l'état en cache mais ne
+  dissipe pas une aura déjà appliquée : ce nettoyage explicite fait disparaître immédiatement
+  les debuffs visibles quand le réglage est retiré. Tant que `mod-challenge-modes` tourne,
+  seuls les personnages inscrits subissent la faim et la soif ; le réglage survit aux
+  reconnexions.
+- **Configuration globale obligatoire** : dans `env/dist/etc/modules/mod_hunger_thirst.conf`,
+  l'interrupteur maître `HungerThirst.Enable = 1` doit rester actif et
+  **`HungerThirst.Mode = survival`** est requis. C'est ce mode qui fait tourner la simulation ;
+  le pont retire ensuite l'état et les auras d'état des personnages non inscrits. En
+  `Mode = off`, l'option du Shrine ne produit **aucun** effet.
+- **Deux clés à ne pas confondre** : `HungerThirstChallenge.Enable = 1` est la clé du module de
+  défis, dans `env/dist/etc/modules/challenge_modes.conf` ; `HungerThirst.Enable` est
+  l'interrupteur maître du module faim et soif, dans
+  `env/dist/etc/modules/mod_hunger_thirst.conf`. Les deux fichiers sont lus dans le même espace
+  de configuration, d'où le suffixe `Challenge` : utiliser `HungerThirst.Enable` dans
+  `challenge_modes.conf` reviendrait à toucher l'interrupteur maître du module faim et soif.
+  Mettre `HungerThirst.Enable = 0` coupe la faim et la soif pour tout le monde, y compris les
+  personnages inscrits.
+- **Cumul et récompenses** : l'option est **cumulable avec tous les autres défis** (elle n'entre
+  dans aucune exclusivité). Elle n'accorde **aucun multiplicateur d'XP ni récompense** (titre,
+  objet, talent, haut fait) et n'a **aucun niveau de désactivation** : aucun niveau atteint ne
+  la retire automatiquement.
+- **Si le module de défis est retiré de la compilation** alors que
+  `HungerThirst.Mode = survival`, plus aucun pont ne retire l'état ni les auras d'état : le
+  module faim et soif charge et simule **tous** les personnages (à leur connexion). Repasser
+  `HungerThirst.Mode = off` **avant** de retirer `mod-challenge-modes`. Le **désactiver** par
+  `ChallengeModes.Enable = 0` ou `HungerThirstChallenge.Enable = 0` laisse le pont actif : au
+  contraire, il retire l'état et les auras de tout le monde, donc aucun personnage n'a faim ni
+  soif tant que le pont tourne.
+- **Config live** : `env/dist/etc/modules/challenge_modes.conf` est créé par l'entrypoint avec
+  `cp -n` et n'est jamais écrasé : après une mise à jour du module, la clé
+  `HungerThirstChallenge.Enable = 1` ne s'y ajoute pas toute seule. Ajoute-la à la main, puis
+  recharge la configuration (`.reload config` en jeu) ou redémarre `ac-worldserver`.
 
 ### Serveur
 
