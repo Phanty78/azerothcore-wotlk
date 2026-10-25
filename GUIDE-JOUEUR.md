@@ -122,18 +122,12 @@ restent consultables mais ne baissent pas et n'ont aucun effet.
   35 points par défaut et suffit donc à sortir de l'état. Le message de chat qui accompagne
   l'état indique désormais « Drink something » (bois quelque chose). L'état revient de
   lui-même après une mort ou une reconnexion tant que la jauge reste basse.
-- **Brouillard visuel** : tant qu'un état de soif est actif, l'écran se brouille environ
-  **2 secondes toutes les 10 secondes**, avec une intensité de **35** pour la soif et de
-  **45** à **0 %**. L'effet est **purement visuel** : **45** reste sous le seuil d'ivresse du
-  client, donc ton personnage n'est plus mis en posture d'ivresse, ne marche plus de travers
-  et ne glisse plus. Il n'apparaît jamais en mode `advisory`, quand le module est
-  désactivé, en champ de bataille, en arène ni à la mort.
 - **La soif ne blesse plus** : plus aucun dégât d'épuisement, plus de plancher à 1 point de
   vie, plus de mort causée par la soif — même en mode Hardcore. Le module n'inflige plus aucun
   dégât.
 - En **champ de bataille** et en **arène**, avec la configuration par défaut, les jauges sont
-  figées, les états restent figés et le brouillard visuel est coupé. Si l'administrateur
-  désactive la pause correspondante, la décroissance, les états et le brouillard continuent.
+  figées et les états restent figés. Si l'administrateur désactive la pause correspondante,
+  la décroissance et les états continuent.
 
 ### Addon d'affichage — optionnel
 
