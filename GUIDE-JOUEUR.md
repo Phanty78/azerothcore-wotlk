@@ -110,6 +110,9 @@ restent consultables mais ne baissent pas et n'ont aucun effet.
   reçois un **état de soif visible** (une icône de boisson dans ta barre) : **-10 %** de
   régénération de mana, **-10 %** de dégâts magiques infligés et **-10 %** de soins
   prodigués. À **0 %**, il devient l'état **déshydraté** : ces trois malus passent à **30 %**.
+  L'état déshydraté garde son icône de chope (`INV_Drink_04`) et ton personnage garde sa
+  démarche normale : l'ancien état utilisait un sort que le client affichait comme un
+  étourdissement, ce qui le faisait glisser sur le sol ; ce n'est plus le cas.
   Un seul état de soif est actif à la fois. La régénération réduite est celle qui vient de
   l'**Esprit** ; les bonus plats de mana toutes les 5 secondes ne sont pas concernés. Les
   dégâts physiques ou à distance, ceux de ton familier et les dégâts que tu subis ne le sont
@@ -125,9 +128,9 @@ restent consultables mais ne baissent pas et n'ont aucun effet.
 - **Brouillard visuel** : tant qu'un état de soif est actif, l'écran se brouille environ
   **2 secondes toutes les 10 secondes**, avec une intensité de **35** pour la soif et de
   **45** à **0 %**. L'effet est **purement visuel** : **45** reste sous le seuil d'ivresse du
-  client, donc ton personnage n'est plus mis en posture d'ivresse, ne marche plus de travers
-  et ne glisse plus. Il n'apparaît jamais en mode `advisory`, quand le module est
-  désactivé, en champ de bataille, en arène ni à la mort.
+  client, donc le brouillard ne change ni ta démarche ni tes mouvements. Il n'apparaît jamais
+  en mode `advisory`, quand le module est désactivé, en champ de bataille, en arène ni à la
+  mort.
 - **La soif ne blesse plus** : plus aucun dégât d'épuisement, plus de plancher à 1 point de
   vie, plus de mort causée par la soif — même en mode Hardcore. Le module n'inflige plus aucun
   dégât.

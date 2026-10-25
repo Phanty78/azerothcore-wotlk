@@ -269,7 +269,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_22_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
-| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` ; pont local dans `modules/mod-challenge-modes` (`HungerThirstChallenge.Enable`) | **opt-in par personnage** via le Shrine (option « Activer la faim et la soif », réglage joueur d'index 10) ; nécessite côté module `HungerThirst.Mode = survival`, le pont retirant l'état et les auras d'état des personnages non inscrits à chaque mise à jour ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et de soif (auras 25696 « Boisson » / 14870 « Drunken Stupor », `ThirstStates`, malus mana/sorts/soins, blur ; les anciennes auras 43155/46583/14869, invisibles côté client, sont retirées automatiquement), **sans aucun dégât ni mort** ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
+| Faim et soif | Module `modules/mod-hunger-thirst` (dépôt git séparé, cloné à cet emplacement, non suivi par le dépôt du serveur) + `env/dist/etc/modules/mod_hunger_thirst.conf` ; pont local dans `modules/mod-challenge-modes` (`HungerThirstChallenge.Enable`) | **opt-in par personnage** via le Shrine (option « Activer la faim et la soif », réglage joueur d'index 10) ; nécessite côté module `HungerThirst.Mode = survival`, le pont retirant l'état et les auras d'état des personnages non inscrits à chaque mise à jour ; en `survival`, états de faim (auras 52749/55316, `HungerStates`) et de soif (auras 25696 « Boisson » / 5909 « Watered-down Beer », `ThirstStates`, malus mana/sorts/soins, blur ; les anciennes auras 43155/46583/14869/14870, invisibles côté client ou obsolètes, sont retirées automatiquement), **sans aucun dégât ni mort** ; table `hunger_thirst_state` ; commandes GM `.hungerthirst set/reset` |
 | XP −10 % | `conf/dist/env.ac` (`AC_RATE_XP_*`) | −10 % sur kills, quêtes, exploration, objectifs BG |
 
 Après une modification de code : `docker compose build ac-worldserver ac-authserver && docker compose up -d`
@@ -296,10 +296,11 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   `mod-challenge-modes` qui décide qui y est soumis : option « Activer la faim et la soif » au
   Shrine (niveau 1 / DK ≤ 55), réglage joueur d'index 10, `LoadState` pour les inscrits et,
   pour les autres à chaque mise à jour, `RemoveState` **et** le retrait explicite des quatre
-  auras d'état (52749/55316 pour la faim, 25696/14870 pour la soif), plus les anciennes auras
-  43155/46583/14869 que le client réel n'affichait pas, afin de nettoyer les personnages qui les
-  portaient encore. En `off`, l'option ne produit aucun effet. Si le pont est **retiré de la
-  compilation** (module de défis absent) alors que `Mode = survival`, plus aucun pont ne retire
+  auras d'état (52749/55316 pour la faim, 25696/5909 pour la soif), plus les anciennes auras
+  43155/46583/14869 que le client réel n'affichait pas et 14870, devenue obsolète avec le nouvel
+  état déshydraté, afin de nettoyer les personnages qui les portaient encore. En `off`,
+  l'option ne produit aucun effet. Si le pont est **retiré de la compilation** (module de
+  défis absent) alors que `Mode = survival`, plus aucun pont ne retire
   les états : tous les personnages sont simulés à leur connexion — repasser `Mode = off` avant.
   Désactiver le module de défis par `ChallengeModes.Enable = 0` laisse au contraire le pont
   actif : il retire l'état et les auras de tout le monde, donc personne n'a faim ni soif.
@@ -390,14 +391,24 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
     (10,00 par défaut, borné 0–90) la régénération de mana,
     les **dégâts magiques infligés** et les **soins prodigués**. Les dégâts physiques, à
     distance, des pets et les dégâts subis ne sont pas concernés ; les soins *reçus* non plus.
-  - Hydratation à 0 : sort **14870**, « Drunken Stupor » (icône `INV_Drink_04`), qui remplace le
-    précédent ; les trois malus passent à 30 % (`ThirstDehydratedPenaltyPct`, 30,00 par défaut,
-    borné 0–90).
+  - Hydratation à 0 : sort **5909**, « Watered-down Beer » (icône `INV_Drink_04`), qui
+    remplace le précédent ; les trois malus passent à 30 % (`ThirstDehydratedPenaltyPct`,
+    30,00 par défaut, borné 0–90).
+  - **Pourquoi 5909 et non 14870** : dans les DBC du client 3.3.5a, **14870** (« Drunken
+    Stupor ») est un **étourdissement** (Apply Aura, aura 12 `SPELL_AURA_MOD_STUN`). Le module
+    ne patche que les données **serveur** : le serveur laissait donc le personnage se déplacer
+    alors que le client jouait la posture figée de l'étourdissement, d'où l'impression de
+    **glisser** sur le sol au lieu de marcher. **5909** porte la **même icône**
+    (`INV_Drink_04`) mais son effet client est une modification de caractéristique (aura 29
+    `SPELL_AURA_MOD_STAT`), sans animation ni posture : le rendu redevient normal, sans aucun
+    patch client.
   - **Anciennes auras retirées** : les sorts **43155** (« Drink », icône `INV_Drink_07`,
     `SPELL_ATTR0_DO_NOT_DISPLAY`), **46583** (« Cosmetic - Drink », `SPELL_ATTR1_NO_AURA_ICON`)
     et **14869** (« Drunken Stupor », `SPELL_ATTR0_PASSIVE`) ne
     servent plus d'états de soif : le client réel ne les affichait pas, d'où l'absence d'icône
-    de soif auparavant. Le module et le pont de `mod-challenge-modes` les dissipent
+    de soif auparavant. **14870** (« Drunken Stupor », icône `INV_Drink_04`) rejoint cette
+    liste : il a été l'état déshydraté et n'est plus utilisé (voir la puce précédente). Le
+    module et le pont de `mod-challenge-modes` dissipent ces quatre sorts
     automatiquement s'il en reste sur un personnage, à chaque mise à jour et sans intervention
     manuelle.
   - La régénération de mana passe par l'aura canonique `SPELL_AURA_MOD_POWER_REGEN_PERCENT`
@@ -409,7 +420,7 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
     Avec les valeurs par défaut, une boisson depuis 0 rend 35 points
     (`DrinkHydrationGain = 35,00`), donc sort directement de l'état déshydraté.
   - **Remède rappelé dans le chat** : les deux lignes d'état de soif — 25696 (« Your thirst
-    weakens you… ») comme 14870 (« You are dehydrated… ») — se terminent par le remède
+    weakens you… ») comme 5909 (« You are dehydrated… ») — se terminent par le remède
     « Drink something » (point pour l'état très soif, point d'exclamation pour l'état
     déshydraté). Les seuils de sortie et les gains ne changent pas (voir l'hystérésis
     ci-dessus) : une boisson depuis 0 rend `DrinkHydrationGain` (35,00) et sort directement de
@@ -418,20 +429,23 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
     `ThirstBlurDurationMs` (2 s) toutes les `ThirstBlurIntervalMs` (10 s), via le champ client
     `PLAYER_FAKE_INEBRIATION` (aucune aura, aucun effet de jeu), intensité **35** pour
     « très soif » et **45** pour « déshydraté ». 45 reste **sous le seuil 50** à partir duquel
-    le client bascule en état d'ivresse : la pulsation reste purement visuelle, sans démarche
-    titubante ni glissement du personnage — c'était le défaut de l'ancienne valeur 60, qui
-    atteignait ce seuil sur le client réel. Le champ est restauré à la sortie de l'état, à la
-    mort, en pause, à la déconnexion et au changement de mode ; il n'est pas persisté. Aucun
-    blur en `advisory`, en `off`, pendant une pause (mort, taxi, GM exempt, duel, BG/arène) ni
-    avec `ThirstStates = 0`. L'effet repose sur un champ lu par le client : purement visuel,
-    sans aura ni effet de jeu ; un repli par aura reste possible mais n'est pas retenu.
+    le client bascule en état d'ivresse : la pulsation reste purement visuelle et ne change ni
+    la démarche ni les déplacements. Le **glissement** du personnage observé auparavant ne
+    venait **ni** de cette intensité **ni** de l'ancienne valeur 60 : il venait du sort d'état
+    **14870**, que le client rendait comme un étourdissement (voir la puce « Pourquoi 5909 et
+    non 14870 »), et il a disparu avec **5909**. Le champ est restauré à la sortie de l'état,
+    à la mort, en pause, à la déconnexion et au changement de mode ; il n'est pas persisté.
+    Aucun blur en `advisory`, en `off`, pendant une pause (mort, taxi, GM exempt, duel,
+    BG/arène) ni avec `ThirstStates = 0`. L'effet repose sur un champ lu par le client :
+    purement visuel, sans aura ni effet de jeu ; un repli par aura reste possible mais n'est
+    pas retenu.
   - Les auras sont négatives, indissipables et réconciliées à chaque tick : elles reviennent
     seules après connexion ou résurrection, et disparaissent dès que l'hydratation remonte dans
     la bande normale, que le mode quitte `survival`, que `ThirstStates = 0`, ou si un des deux
     sorts n'a pas pu être patché au démarrage (les états sont alors désactivés, erreur au log).
   - **Tooltip** : même limite que pour la faim — la description vient du DBC du client et ne
-    peut pas être changée côté serveur. Sans addon, 25696 et 14870 gardent le nom et le texte
-    Blizzard d'origine, localisés par le client (« Drink » / « Drunken Stupor » en
+    peut pas être changée côté serveur. Sans addon, 25696 et 5909 gardent le nom et le texte
+    Blizzard d'origine, localisés par le client (« Drink » / « Watered-down Beer » en
     anglais), qui ne décrivent pas ces malus : la ligne de chat (« Your thirst weakens you… »
     / « You are dehydrated… ») fait foi et rappelle le pourcentage réel. L'addon optionnel mis
     à jour (puce « Addon client » ci-dessous) remplace le tooltip des quatre auras d'état ;
@@ -467,7 +481,7 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   existantes, mais il vaut **toujours `0`** : l'addon n'affiche plus de mode létal.
   L'addon est **optionnel** (le serveur fonctionne sans lui) mais sa version à jour est
   **recommandée** : elle remplace le tooltip des quatre auras d'état (52749, 55316, 25696,
-  14870) sur les icônes de buff/débuff du joueur par un texte français décrivant les effets
+  5909) sur les icônes de buff/débuff du joueur par un texte français décrivant les effets
   réels et le remède (manger / boire), ce que le serveur ne peut pas faire, les tooltips étant
   lus dans les DBC du client (voir les états de faim et de soif ci-dessus). Le hook couvre les
   icônes standard (le client 3.3.5a passe par `GameTooltip:SetUnitAura`) ; un addon tiers qui
@@ -598,13 +612,13 @@ moteur, et le pont s'appuie sur son API publique `LoadState` / `RemoveState`.
   dans la simulation en chargeant son état via `LoadState` ; le personnage est ensuite simulé
   par le module faim et soif.
 - **Portée par personnage** : à chaque mise à jour, le pont appelle `RemoveState` **et** retire
-  explicitement les quatre auras d'état (52749, 55316 pour la faim ; 25696, 14870 pour la soif)
-  ainsi que les anciennes auras 43155/46583/14869 (invisibles côté client) pour tout personnage qui
-  n'a pas ce réglage. `RemoveState` efface l'état en cache mais ne dissipe pas une aura déjà
-  appliquée : ce nettoyage explicite fait disparaître immédiatement les debuffs visibles quand
-  le réglage est retiré. Tant que `mod-challenge-modes` tourne,
-  seuls les personnages inscrits subissent la faim et la soif ; le réglage survit aux
-  reconnexions.
+  explicitement les quatre auras d'état (52749, 55316 pour la faim ; 25696, 5909 pour la soif)
+  ainsi que les anciennes auras 43155/46583/14869 (invisibles côté client) et 14870 (devenue
+  obsolète) pour tout personnage qui n'a pas ce réglage. `RemoveState` efface l'état en cache
+  mais ne dissipe pas une aura déjà appliquée : ce nettoyage explicite fait disparaître
+  immédiatement les debuffs visibles quand le réglage est retiré. Tant que
+  `mod-challenge-modes` tourne, seuls les personnages inscrits subissent la faim et la soif ;
+  le réglage survit aux reconnexions.
 - **Configuration globale obligatoire** : dans `env/dist/etc/modules/mod_hunger_thirst.conf`,
   l'interrupteur maître `HungerThirst.Enable = 1` doit rester actif et
   **`HungerThirst.Mode = survival`** est requis. C'est ce mode qui fait tourner la simulation ;
