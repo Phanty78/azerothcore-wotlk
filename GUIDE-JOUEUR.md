@@ -163,3 +163,44 @@ réaffiche les icônes et retient ton choix ; `/hungerthirst reset`
 replace la fenêtre et les icônes à leurs positions par défaut et réaffiche la fenêtre, en
 conservant ton choix d'afficher ou masquer les icônes. Aucune texture personnalisée ni patch
 client n'est nécessaire : les icônes utilisent les textures d'origine de 3.3.5a.
+
+## 4. Coûts de mana vanilla — addon d'affichage (optionnel)
+
+Le serveur applique désormais les **coûts de mana plats de la 1.12.1** à 370 sorts de dégâts et
+de soins de joueur (rangs ≤ 60) : c'est le serveur qui calcule le coût réel, talents, auras et
+réductions de coût compris. Le client 3.3.5a, lui, continue d'afficher les valeurs de ses propres
+fichiers de données, où ces sorts coûtent un **pourcentage de mana de base** : sans rien
+installer, tu paies bien le coût vanilla, mais la **coloration bleue « pas assez de mana »** de
+l'icône dans la barre d'action et les **infobulles** restent celles de WotLK et sont donc
+fausses.
+
+Un addon fourni avec le module corrige cet affichage. Il est **facultatif** : sans lui, le
+serveur facture exactement les mêmes coûts et le jeu n'est pas affecté — seules les icônes et
+les infobulles montrent les valeurs d'origine.
+
+Pour l'installer :
+
+1. Le module est un dépôt git séparé, cloné dans `modules/mod-vanilla-spell-cost` sur le serveur.
+   Copie son dossier `modules/mod-vanilla-spell-cost/addon/VanillaSpellCost` dans le dossier
+   `Interface/AddOns/` de ton client WoW.
+2. Redémarre le client (ou tape `/reload`). Dans la liste des addons, **Vanilla Spell Cost** doit
+   apparaître (coché).
+3. En jeu, `/vsc` affiche l'état de l'addon ; `/vsc refresh` redemande les coûts au serveur.
+
+Avec l'addon, l'icône d'un sort de la barre d'action se teinte en **bleu** dès que le coût réel
+annoncé par le serveur dépasse la ressource dont tu disposes, et l'infobulle affiche le **coût
+plat réel** (« 30 Mana ») au lieu du pourcentage de mana de base. L'addon a besoin que le module
+serveur soit **activé** (`VanillaSpellCost.Enable=1`) : sinon il n'affiche aucun coût et les
+icônes gardent l'affichage d'origine.
+
+Limites :
+
+- Les sorts absents de la table `vanilla_spell_cost` ne sont pas concernés : pour eux, le client
+  est déjà juste et rien n'est envoyé ni affiché. Les sorts payés en runes, les sorts de familier
+  et les objets ne changent pas non plus.
+- L'addon ne corrige que l'**affichage** : c'est toujours le serveur qui applique le vrai coût,
+  que l'addon soit installé ou non.
+- Aucun patch du client n'est utilisé : le client 3.3.5a n'expose aucune API de coût de sort,
+  l'addon se contente des valeurs envoyées par le serveur.
+- Une macro qui masque l'identifiant du sort à `GetActionInfo` garde la coloration d'origine :
+  l'addon ne peut pas relier l'icône au sort.

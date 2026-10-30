@@ -7,6 +7,16 @@
 - `VanillaRegen.Enable` (env: `AC_VANILLA_REGEN_ENABLE`) to use the exact 1.12.1
   player HP/mana regeneration formulas (class + Spirit) instead of the 3.3.5
   `gt*regen` DBC tables.
+- `mod-vanilla-spell-cost`, a standalone module with an optional `VanillaSpellCost`
+  client addon. The module answers addon whispers from the player with the exact
+  `SpellInfo::CalcPowerCost` value of each spell present in `vanilla_spell_cost`
+  (`VanillaSpellCost.Enable` is the master switch, `VanillaSpellCost.Debug` logs
+  the packets). The addon then tints action-bar icons and rewrites tooltips with
+  the flat vanilla cost: the 3.3.5 client keeps showing "N% of base mana" on its
+  own, because every affected spell is a percentage-of-base-mana spell in the
+  DBC data. Client half: `modules/mod-vanilla-spell-cost/addon/VanillaSpellCost`
+  (3.3.5a, Interface 30300). `/vsc` reports the status, `/vsc refresh` re-asks
+  the server.
 
 ### Changed
 - Creature aggro radius is now +20% (`AC_RATE_CREATURE_AGGRO=1.20`).
@@ -18,6 +28,16 @@
 - Keep `AC_VANILLA_REGEN_ENABLE=1`, `AC_RATE_HEALTH=1.0`, `AC_RATE_MANA=1.0`,
   `AC_RATE_CREATURE_AGGRO=1.20` in `conf/dist/env.ac`.
 - Restart the worldserver (aggro and spell-info caches are read at startup).
+- Add `modules/mod-vanilla-spell-cost` (separate repository, not tracked here) before
+  rebuilding `ac-worldserver`, then run
+  `docker compose build ac-worldserver && docker compose up -d ac-worldserver`.
+  Keep `VanillaSpellCost.Enable=1` in
+  `env/dist/etc/modules/mod_vanilla_spell_cost.conf`; `VanillaSpellCost.Debug=0`
+  unless packets are being traced.
+- Optional for players: copy
+  `modules/mod-vanilla-spell-cost/addon/VanillaSpellCost` into
+  `Interface/AddOns/`. Without it the server charges the same costs, but action-bar
+  icons and tooltips keep the stock WotLK percentages.
 
 ## 7.0.0-dev.1 | Commit: [0c4feb674444210da295751a0c4e5eefb9c771f1
 ](https://github.com/azerothcore/azerothcore-wotlk/commit/0c4feb674444210da295751a0c4e5eefb9c771f1

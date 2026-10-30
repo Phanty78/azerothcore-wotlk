@@ -265,7 +265,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 | Créatures vanilla-like | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | normaux ×1,35 dégâts / ×1,20 PV / ×1,30 sorts ; élites ×1,40 / ×1,50 / ×1,30 ; partout y compris instances |
 | Aggro +20 % | `conf/dist/env.ac` (`AC_RATE_CREATURE_AGGRO`) | rayon d'aggro des créatures ×1,20 (redémarrage requis) |
 | Régénération vanilla 1.12 | `VanillaRegen.Enable=1` (`AC_VANILLA_REGEN_ENABLE`), `AC_RATE_HEALTH`/`AC_RATE_MANA=1.0` | PV/mana hors combat recalculés avec les formules 1.12.1 (classe + Esprit), au lieu des tables DBC WotLK |
-| Coûts de mana vanilla | Table `vanilla_spell_cost` + `SpellInfo::CalcPowerCost` | coût plat 1.12.1 pour les sorts de dégâts/soins de joueur (rangs ≤ 60), avant talents/auras |
+| Coûts de mana vanilla | Table `vanilla_spell_cost` + `SpellInfo::CalcPowerCost` ; module `modules/mod-vanilla-spell-cost` (dépôt séparé, non suivi par le dépôt du serveur) + addon client `VanillaSpellCost` | coût plat 1.12.1 pour les sorts de dégâts/soins de joueur (rangs ≤ 60), avant talents/auras ; l'addon optionnel corrige la coloration de l'icône de barre d'action et les infobulles, qui restent sinon en pourcentage de mana de base |
 | Familiers standard | `Creature.{h,cpp}`, `ObjectMgr.cpp`, `StatSystem.cpp`, `Unit.cpp` | familiers/gardiens/totems exclus des taux monstres (corrige le ×1,35 accidentel) |
 | Monstres rouges vanilla | `data/sql/updates/db_world/2026_10_30_00.sql` | 138 factions restaurées (rouges 1.12.1 devenus jaunes) |
 | Mort définitive | Module `modules/mod-challenge-modes` (dépôt cloné, patché local, **non suivi par le dépôt du serveur**) | opt-in par personnage via le Shrine of Challenge (niveau 1 / DK ≤ 55) ; annonces serveur ; journal `hardcore_deaths` ; sauvetage GM `.hardcore revive` |
@@ -494,6 +494,52 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
   pendant une session, un `/reload` (ou une reconnexion) suffit à charger les tooltips.
 - **Rebuild Docker** après le clone initial ou une mise à jour du module :
   `docker compose build ac-worldserver && docker compose up -d`.
+
+### Module coûts de mana vanilla (`mod-vanilla-spell-cost`)
+
+- **Rôle** : le module ne calcule pas les coûts — ils viennent de la table `vanilla_spell_cost`
+  (`data/sql/updates/db_world/2026_10_30_02.sql`, 370 sorts de dégâts/soins de joueur de rang
+  ≤ 60) et de la surcharge `SpellInfo::CalcPowerCost`. Il fournit la moitié **serveur** qui
+  répond à l'addon client, plus sa configuration.
+- **Pourquoi un addon** : le client 3.3.5a affiche les coûts de ses propres fichiers de données,
+  où ces 370 sorts valent un **pourcentage de mana de base**. Sans l'addon, la coloration bleue
+  « pas assez de mana » de l'icône de la barre d'action et les infobulles restent donc fausses, alors que le
+  serveur facture bien le coût vanilla. Le client n'expose aucune API de coût : seul un échange
+  de messages addon permet de corriger l'affichage, sans patch client.
+- **Dépôt séparé** : le module vit dans son propre dépôt, cloné dans
+  `modules/mod-vanilla-spell-cost`. Il n'est **pas** versionné dans le dépôt du serveur : après
+  un nouveau clone, le récupérer à cet emplacement **avant** de reconstruire l'image, sinon
+  celle-ci est construite sans lui.
+- **Config** : `env/dist/etc/modules/mod_vanilla_spell_cost.conf`, créé au démarrage Docker
+  depuis le `.conf.dist` installé dans l'image
+  (`/azerothcore/env/ref/etc/modules/mod_vanilla_spell_cost.conf.dist` dans le conteneur,
+  lui-même issu de `modules/mod-vanilla-spell-cost/conf/mod_vanilla_spell_cost.conf.dist`).
+  Deux clés :
+  `VanillaSpellCost.Enable=1` (interrupteur maître ; à `0`, le module répond `OFF` et ne
+  fournit aucun coût) et `VanillaSpellCost.Debug=0` (trace des paquets dans le log). Comme
+  partout, l'entrypoint copie avec `cp -n` : une clé ajoutée par une version ultérieure doit
+  être recopiée à la main dans le fichier live.
+- **Compilation** : `docker compose build ac-worldserver && docker compose up -d ac-worldserver`.
+  Un redémarrage seul ne suffit pas après une modification du code du module ; un
+  `.reload config` relit les deux clés mais ne recharge pas le binaire.
+- **Ce que le serveur répond** : uniquement pour les sorts présents dans la table, avec le coût
+  exact que `CalcPowerCost` donne pour l'état courant du personnage (talents, auras et
+  réductions de coût comprises). Seul un chuchotement addon du joueur à lui-même est accepté
+  (préfixe `VSC`), limité à 24 messages en rafale puis 8 par seconde, le surplus étant ignoré.
+  Les sorts hors table, les runes, les familiers, les macros et les objets ne sont pas touchés :
+  le client est déjà correct pour eux.
+- **Addon client** : `modules/mod-vanilla-spell-cost/addon/VanillaSpellCost`, à copier dans
+  `Interface/AddOns/` (client 3.3.5a, Interface 30300). Il est **facultatif** : sans lui, les
+  coûts facturés sont identiques, seuls les icônes et les infobulles gardent l'affichage WotLK.
+  Avec lui, la coloration bleue de l'icône et le coût plat réel (« 30 Mana ») suivent la réponse du serveur ;
+  `/vsc` affiche l'état et `/vsc refresh` redemande les coûts. Il exige
+  `VanillaSpellCost.Enable=1`.
+- **Limite d'affichage** : l'addon corrige la coloration de l'icône et l'infobulle, jamais le calcul serveur,
+  qui reste seul juge du coût. Une macro qui masque l'identifiant du sort à `GetActionInfo`
+  garde la coloration d'origine. Aucun patch client (MPQ/DBC) n'est utilisé.
+- **Diagnostic** : si les icônes restent en pourcentage, vérifier dans l'ordre que le module est
+  compilé dans l'image, que `VanillaSpellCost.Enable=1` est présent dans le fichier live, que
+  l'addon est coché dans la liste des addons, puis `/vsc` en jeu.
 
 ---
 
