@@ -120,12 +120,16 @@ __pycache__/
 #  CUSTOM
 #
 #  put below your custom ignore rules
-#  for example , if you want to include a
-#  module directly in repositoryyou can do:
+#  for example , if you want to include
+#  a module directly in repositoryyou can do:
 #
 #  !modules/yourmodule
 #
 # ==================
+
+# mod-world-party-scaling is developed in this repository tree (not a nested clone).
+!modules/mod-world-party-scaling/
+!modules/mod-world-party-scaling/**
 
 # Live-stack e2e private / local tooling (scratch tests stay uncommitted)
 e2e/local/**

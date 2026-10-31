@@ -1,0 +1,179 @@
+[worldserver]
+
+####################################################################################################
+# mod-world-party-scaling
+#
+# Scales open-world creatures to the size of the party fighting them. A creature engaged by a
+# party receives the health and damage coefficients of that party's tier, based on the number of
+# online party members counted anywhere on any map. The module only acts on world maps
+# (Map::IsWorldMap); dungeons, raids, battlegrounds and arenas are never modified.
+#
+# At engagement the module replaces the server's existing creature difficulty rates for the
+# managed creature with the coefficients below. The coefficients apply to the creature's
+# reference health and damage; the global Rate.Creature.* values from worldserver.conf and
+# conf/dist/env.ac are not multiplied on top. This keeps the result independent of the server's
+# open-world tuning. Instance rates and instance scaling are left exactly as they are.
+#
+# The coefficients are experimental; adjust them to taste.
+# They are read from the group tier at the moment combat starts and stay frozen for that fight.
+#
+# The module has no database tables and no persistent state. Setting Enable to 0 leaves the
+# native creature statistics untouched.
+#
+# This file must be installed as env/dist/etc/modules/mod_world_party_scaling.conf (without the
+# .dist suffix). A worldserver rebuild plus install places the .dist file there; the native
+# installer (with default settings) and the Docker entrypoint copy it to .conf automatically on
+# first deployment. Otherwise copy it once by hand.
+####################################################################################################
+
+#
+#    WorldPartyScaling.Enable
+#        Description: Master switch. 0 disables scaling and leaves every creature untouched.
+#        Default:     1
+#
+
+WorldPartyScaling.Enable = 1
+
+####################################################################################################
+# Party size tiers
+#
+# One health coefficient and one damage coefficient per party size. Group1 applies to a solo
+# player or a one-member party; Group2 to two members, and so on. A group of seven or more uses
+# the Group6 tier: the coefficients above six are intentionally not defined, so larger groups
+# never receive more than the tier 6 values.
+#
+# Health scales the health base used to recompute maximum health. Damage scales melee and ranged
+# physical damage, direct offensive spells, and standard damage-over-time ticks. For direct spells,
+# weapon-damage spells (EffectWeaponDmg) are checked first and use the melee rate; other spells with
+# SPELL_ATTR3_IGNORE_CASTER_MODIFIERS use the coefficient alone; all remaining spells use the spell
+# rate. A mixed weapon + school-damage spell uses the melee factor for its aggregate damage.
+# Periodic ticks are scaled only for standard PERIODIC_DAMAGE spells without heal,
+# SPELL_AURA_OBS_MOD_HEALTH, leech, percent or health-funnel effects.
+# It does not scale healing, absorbs, armor, resistances, experience, loot, drop rates or special
+# creature abilities.
+#
+# Values are multipliers against the creature's reference statistics; 1.00 keeps the creature
+# at its reference value. They are not stacked on the server's global creature rates. Health values
+# must be finite and greater than zero; damage values must be finite and greater than or equal to zero.
+# Invalid values fall back to the defaults above and are reported in the log.
+# There is no user-facing coefficient ceiling. Internally, the scaled health base is capped at
+# 1073741824 before auras compose maximum health, and scaled damage at 1073741823 (with the 1-point
+# floor), so core critical-hit doubling cannot overflow. Ordinary values are unaffected.
+####################################################################################################
+
+#
+#    WorldPartyScaling.Group1.Health
+#    WorldPartyScaling.Group1.Damage
+#        Description: Coefficients for one player (solo).
+#        Defaults:    Health 1.00, Damage 1.00
+#
+
+WorldPartyScaling.Group1.Health = 1.00
+WorldPartyScaling.Group1.Damage = 1.00
+
+#
+#    WorldPartyScaling.Group2.Health
+#    WorldPartyScaling.Group2.Damage
+#        Description: Coefficients for a party of two.
+#        Defaults:    Health 1.70, Damage 1.35
+#
+
+WorldPartyScaling.Group2.Health = 1.70
+WorldPartyScaling.Group2.Damage = 1.35
+
+#
+#    WorldPartyScaling.Group3.Health
+#    WorldPartyScaling.Group3.Damage
+#        Description: Coefficients for a party of three.
+#        Defaults:    Health 2.50, Damage 1.50
+#
+
+WorldPartyScaling.Group3.Health = 2.50
+WorldPartyScaling.Group3.Damage = 1.50
+
+#
+#    WorldPartyScaling.Group4.Health
+#    WorldPartyScaling.Group4.Damage
+#        Description: Coefficients for a party of four.
+#        Defaults:    Health 3.30, Damage 1.65
+#
+
+WorldPartyScaling.Group4.Health = 3.30
+WorldPartyScaling.Group4.Damage = 1.65
+
+#
+#    WorldPartyScaling.Group5.Health
+#    WorldPartyScaling.Group5.Damage
+#        Description: Coefficients for a party of five.
+#        Defaults:    Health 4.20, Damage 1.80
+#
+
+WorldPartyScaling.Group5.Health = 4.20
+WorldPartyScaling.Group5.Damage = 1.80
+
+#
+#    WorldPartyScaling.Group6.Health
+#    WorldPartyScaling.Group6.Damage
+#        Description: Coefficients for a party of six, and for any larger group.
+#        Defaults:    Health 5.20, Damage 1.95
+#
+
+WorldPartyScaling.Group6.Health = 5.20
+WorldPartyScaling.Group6.Damage = 1.95
+
+####################################################################################################
+# Diagnostics
+####################################################################################################
+
+#
+#    WorldPartyScaling.EnableDebug
+#        Description: Write one diagnostic line when a creature starts being scaled and one when it
+#                     is restored. 0 = silent. Intended for troubleshooting on a test realm; leave 0
+#                     in production.
+#        Default:     0
+#
+
+WorldPartyScaling.EnableDebug = 0
+
+####################################################################################################
+# Exclusions
+#
+# All three lists are optional. An empty value ("") means no exclusion. Entries are comma
+# separated; spaces around entries are ignored. Invalid or out-of-range entries are ignored.
+#
+# An excluded creature, map or zone is not scaled by this module and keeps the server's native
+# creature statistics, exactly as if the module were not installed. Exclusion is evaluated at
+# engagement; a creature already in combat keeps the coefficients it received.
+####################################################################################################
+
+#
+#    WorldPartyScaling.ExcludedCreatureEntries
+#        Description: Creature template entries (creature_template.entry) that must never be
+#                     scaled. Use this for quest bosses, scripted encounters or other special
+#                     creatures that rely on exact health and damage values.
+#        Example:     "12345,23456"
+#        Default:     "" (no creature excluded)
+#
+
+WorldPartyScaling.ExcludedCreatureEntries = ""
+
+#
+#    WorldPartyScaling.ExcludedMaps
+#        Description: Map IDs that must never be scaled. Open-world exceptions only; instances are
+#                     already out of scope. Use the map ID from Map.dbc.
+#        Example:     "0,1"
+#        Default:     "" (no map excluded)
+#
+
+WorldPartyScaling.ExcludedMaps = ""
+
+#
+#    WorldPartyScaling.ExcludedZones
+#        Description: Zone IDs that must never be scaled, taken from AreaTable.dbc. The creature's
+#                     current top-level zone at engagement is compared with this list (not its
+#                     subzone). Useful for capital cities, starting zones or custom event areas.
+#        Example:     "1519,1637"
+#        Default:     "" (no zone excluded)
+#
+
+WorldPartyScaling.ExcludedZones = ""
