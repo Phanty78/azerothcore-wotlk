@@ -80,7 +80,7 @@ did you mean 'GetHealthPct'?
 
 The module had used three public helpers added by this server's custom core commit
 `3394dc83e` (`GetHealthRateMod`, `GetDamageRateMod`, `GetSpellDamageRateMod`). Those helpers do not exist
-in upstream AzerothCore, whose equivalent health and melee helpers are protected. The module now selects
+in upstream AzerothCore, which exposes a different helper shape. The module now selects
 the same native rates through public `sWorld->getRate(RATE_CREATURE_*)` calls based on
 `CreatureTemplate::rank` (`GetHealthRate`, `GetDamageRate`, `GetSpellDamageRate`), so it compiles on both
 the custom checkout and upstream master without changing the scaling formula.

@@ -32,10 +32,10 @@ The file also sets `AC_RATE_CREATURE_AGGRO=1.20`. Its own comments state that th
 exception in the file.
 
 The rates are not a module setting: they are the core's native creature rates. Upstream AzerothCore
-keeps its health and melee rate helpers protected (`Creature::_GetHealthMod()` and
-`Creature::_GetDamageMod()`); some custom checkouts add public `GetHealthRateMod()`,
-`GetDamageRateMod()` and `GetSpellDamageRateMod()` wrappers. Those wrappers are not part of upstream
-master and must not be a module dependency. The module reads the same native rates through the public
+keeps `Creature::_GetHealthMod()` protected and exposes `Creature::_GetDamageMod()` and
+`Creature::GetSpellDamageMod()`; some custom checkouts replace this shape with public
+`GetHealthRateMod()`, `GetDamageRateMod()` and `GetSpellDamageRateMod()` wrappers. Neither shape is a
+stable module interface. The module reads the same native rates through the public
 `sWorld->getRate(...)` API, selecting the rate for the creature's rank itself. This compiles and
 behaves identically on upstream master and on a checkout that carries the custom wrappers.
 
