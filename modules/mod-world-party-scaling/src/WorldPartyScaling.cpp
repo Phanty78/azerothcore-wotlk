@@ -35,6 +35,7 @@
 #include "SpellAuraDefines.h"
 #include "SpellInfo.h"
 #include "Tokenize.h"
+#include "World.h"
 
 #include <algorithm>
 #include <charconv>
@@ -257,6 +258,75 @@ bool IsCreatureEligible(Creature* creature, Player* engagingPlayer)
     return true;
 }
 
+float GetHealthRate(Creature const* creature)
+{
+    CreatureTemplate const* info = creature->GetCreatureTemplate();
+    if (!info)
+        return 1.0f;
+
+    switch (info->rank)
+    {
+        case CREATURE_ELITE_NORMAL:
+            return sWorld->getRate(RATE_CREATURE_NORMAL_HP);
+        case CREATURE_ELITE_ELITE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_ELITE_HP);
+        case CREATURE_ELITE_RAREELITE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_RAREELITE_HP);
+        case CREATURE_ELITE_WORLDBOSS:
+            return sWorld->getRate(RATE_CREATURE_ELITE_WORLDBOSS_HP);
+        case CREATURE_ELITE_RARE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_RARE_HP);
+        default:
+            return sWorld->getRate(RATE_CREATURE_ELITE_ELITE_HP);
+    }
+}
+
+float GetDamageRate(Creature const* creature)
+{
+    CreatureTemplate const* info = creature->GetCreatureTemplate();
+    if (!info)
+        return 1.0f;
+
+    switch (info->rank)
+    {
+        case CREATURE_ELITE_NORMAL:
+            return sWorld->getRate(RATE_CREATURE_NORMAL_DAMAGE);
+        case CREATURE_ELITE_ELITE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_ELITE_DAMAGE);
+        case CREATURE_ELITE_RAREELITE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_RAREELITE_DAMAGE);
+        case CREATURE_ELITE_WORLDBOSS:
+            return sWorld->getRate(RATE_CREATURE_ELITE_WORLDBOSS_DAMAGE);
+        case CREATURE_ELITE_RARE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_RARE_DAMAGE);
+        default:
+            return sWorld->getRate(RATE_CREATURE_ELITE_ELITE_DAMAGE);
+    }
+}
+
+float GetSpellDamageRate(Creature const* creature)
+{
+    CreatureTemplate const* info = creature->GetCreatureTemplate();
+    if (!info)
+        return 1.0f;
+
+    switch (info->rank)
+    {
+        case CREATURE_ELITE_NORMAL:
+            return sWorld->getRate(RATE_CREATURE_NORMAL_SPELLDAMAGE);
+        case CREATURE_ELITE_ELITE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_ELITE_SPELLDAMAGE);
+        case CREATURE_ELITE_RAREELITE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_RAREELITE_SPELLDAMAGE);
+        case CREATURE_ELITE_WORLDBOSS:
+            return sWorld->getRate(RATE_CREATURE_ELITE_WORLDBOSS_SPELLDAMAGE);
+        case CREATURE_ELITE_RARE:
+            return sWorld->getRate(RATE_CREATURE_ELITE_RARE_SPELLDAMAGE);
+        default:
+            return sWorld->getRate(RATE_CREATURE_ELITE_ELITE_SPELLDAMAGE);
+    }
+}
+
 ScalingKey GetScalingKey(Creature const* creature)
 {
     return ScalingKey{ creature->GetMapId(), creature->GetInstanceId(), creature->GetGUID() };
@@ -348,9 +418,9 @@ bool WorldPartyScalingMgr::TryStartScaling(Creature* creature, Player* engagingP
     state.healthCoefficient = g_WorldPartyScalingConfig.HealthMultiplier(groupSize);
     state.damageCoefficient = g_WorldPartyScalingConfig.DamageMultiplier(groupSize);
     state.originalBaseFlat = creature->GetFlatModifierValue(UNIT_MOD_HEALTH, BASE_VALUE);
-    state.oldHealthRate = creature->GetHealthRateMod();
-    state.oldMeleeRate = creature->GetDamageRateMod();
-    state.oldSpellRate = creature->GetSpellDamageRateMod();
+    state.oldHealthRate = GetHealthRate(creature);
+    state.oldMeleeRate = GetDamageRate(creature);
+    state.oldSpellRate = GetSpellDamageRate(creature);
 
     uint32 const createHealth = creature->GetCreateHealth();
     uint32 const referenceSource = createHealth ? createHealth : creature->GetMaxHealth();

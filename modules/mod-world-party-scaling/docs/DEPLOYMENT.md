@@ -1,8 +1,14 @@
 # Deployment
 
 This guide covers installing, verifying, disabling and removing `mod-world-party-scaling` on an
-AzerothCore WotLK server. Commands assume the repository root is the working directory and the module
-is at `modules/mod-world-party-scaling`.
+AzerothCore WotLK server. Commands assume the core repository root is the working directory and the
+module is cloned from <https://github.com/Phanty78/mod-world-party-scaling> into
+`modules/mod-world-party-scaling`:
+
+```bash
+git clone https://github.com/Phanty78/mod-world-party-scaling.git \
+  modules/mod-world-party-scaling
+```
 
 The module is a static script module. It is compiled into `worldserver`; adding or removing it always
 requires a CMake reconfigure and a worldserver rebuild. It has no SQL, no database table and no

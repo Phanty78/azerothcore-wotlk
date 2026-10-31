@@ -152,12 +152,22 @@ creature.
 
 The module is a static AzerothCore script module: its sources are compiled into `worldserver`. Adding or
 removing the module therefore requires a CMake reconfigure and a worldserver rebuild. No client patch
-and no database update are required.
+and no database update are required. Only public core APIs are used: native `Rate.Creature.*` values are
+read through `sWorld->getRate(...)` by creature rank, so the module does not depend on custom
+`GetHealthRateMod()`/`GetDamageRateMod()`/`GetSpellDamageRateMod()` wrappers that are absent from
+upstream AzerothCore.
 
 ### Docker
 
-The module directory is `modules/mod-world-party-scaling`. Rebuild the worldserver image so CMake picks
-up the module:
+The independent repository is <https://github.com/Phanty78/mod-world-party-scaling>. Clone it into the
+core as `modules/mod-world-party-scaling`:
+
+```bash
+git clone https://github.com/Phanty78/mod-world-party-scaling.git \
+  modules/mod-world-party-scaling
+```
+
+Then rebuild the worldserver image so CMake picks up the module:
 
 ```bash
 docker compose build ac-worldserver

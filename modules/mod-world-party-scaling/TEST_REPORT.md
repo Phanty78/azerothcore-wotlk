@@ -5,7 +5,9 @@ This report records what was actually executed on this checkout. Anything not ex
 
 ## Environment
 
-- AzerothCore WotLK 3.3.5a, core revision `c981b3b396e0+` on branch `feature/mod-world-party-scaling`.
+- AzerothCore WotLK 3.3.5a, local core revision `c981b3b396e0+`; module tested from a core checkout
+  before publication at `https://github.com/Phanty78/mod-world-party-scaling`. The standalone CI run
+  below tested commit `c7766d7`.
 - Host: macOS arm64, 10 cores; CMake 3.x, Unix Makefiles, Release build.
 - PCH build: `var/build` (configured with `USE_SCRIPTPCH=ON`).
 - No-PCH build: `var/build-nopch` (configured with `-DNOPCH=1`; Homebrew readline headers were
@@ -64,6 +66,29 @@ The first NOPCH attempt selected the macOS SDK readline headers and failed in th
 `src/server/apps/worldserver/CommandLine/CliRunnable.cpp` (`rl_done` and `rl_event_hook` undeclared).
 Selecting the Homebrew readline headers fixed that environment mismatch; the module itself had already
 compiled cleanly in both attempts.
+
+### Standalone upstream CI
+
+The standalone repository's `core-build` run
+[`41198263213`](https://github.com/Phanty78/mod-world-party-scaling/actions/runs/41198263213) checked out
+upstream `azerothcore/azerothcore-wotlk` master `b00394604802` and failed at compile time:
+
+```text
+WorldPartyScaling.cpp:351:37: fatal error: no member named 'GetHealthRateMod' in 'Creature';
+did you mean 'GetHealthPct'?
+```
+
+The module had used three public helpers added by this server's custom core commit
+`3394dc83e` (`GetHealthRateMod`, `GetDamageRateMod`, `GetSpellDamageRateMod`). Those helpers do not exist
+in upstream AzerothCore, whose equivalent health and melee helpers are protected. The module now selects
+the same native rates through public `sWorld->getRate(RATE_CREATURE_*)` calls based on
+`CreatureTemplate::rank` (`GetHealthRate`, `GetDamageRate`, `GetSpellDamageRate`), so it compiles on both
+the custom checkout and upstream master without changing the scaling formula.
+
+Result: **PASS** against the exact CI core `b00394604802` with no PCH, warnings enabled and `-Werror`;
+the `modules` target compiled and linked. The patched module was also compiled against current upstream
+master `49bdb66ce` with the same flags. It was then rebuilt against the local custom core with PCH, also
+**PASS**.
 
 ### Live Docker image
 
@@ -180,4 +205,5 @@ cd modules/mod-world-party-scaling && python3 ../../apps/codestyle/codestyle-cpp
 ```
 
 Both passed: no whitespace errors, no trailing whitespace/tabs, no `GetCounter()`/flag-helper/style
-violations.
+violations. The standalone workflow's `cppcheck` command, run with its official suppression list, also
+produced an empty report.

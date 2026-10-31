@@ -31,17 +31,18 @@ The file also sets `AC_RATE_CREATURE_AGGRO=1.20`. Its own comments state that th
 **every map, dungeons and raids included** (`conf/dist/env.ac`, lines 26-54). There is no instance
 exception in the file.
 
-The rates are not a module setting: they are the core's native creature rates, consumed by
-`Creature::GetHealthRateMod()` (`Creature.cpp:1577`), `Creature::GetDamageRateMod()`
-(`Creature.cpp:1599`) and `Creature::GetSpellDamageRateMod()` (`Creature.cpp:1621`). Each method
-selects the rate for the creature's rank from `sWorld->getRate(...)`. Creature creation applies the
-health rate when it computes base health and maximum health (`Creature.cpp:1528`), which is why the
-rate is already present in a spawned creature's maximum health.
+The rates are not a module setting: they are the core's native creature rates. Upstream AzerothCore
+keeps its health and melee rate helpers protected (`Creature::_GetHealthMod()` and
+`Creature::_GetDamageMod()`); some custom checkouts add public `GetHealthRateMod()`,
+`GetDamageRateMod()` and `GetSpellDamageRateMod()` wrappers. Those wrappers are not part of upstream
+master and must not be a module dependency. The module reads the same native rates through the public
+`sWorld->getRate(...)` API, selecting the rate for the creature's rank itself. This compiles and
+behaves identically on upstream master and on a checkout that carries the custom wrappers.
 
-The same methods return `1.0` for pets, guardians, totems and player-controlled creatures, because
-those are excluded from creature rates by `Creature::IsExcludedFromCreatureRates()`. The module's
-eligibility test additionally rejects `Creature::IsSummon()`, so temporary and scripted summons are not
-scaled even though the core rate methods do not exclude them.
+Creature creation applies the health rate when it computes base health and maximum health, which is
+why the rate is already present in a spawned creature's maximum health. The module's eligibility test
+rejects pets, guardians, totems, summons, player-controlled and charmed units before reading a rate,
+so none of those units is ever scaled regardless of which rate helper the core exposes.
 
 ## Open-world isolation
 
@@ -73,8 +74,8 @@ primary start path.
 ### Health
 
 ```text
-reference health = GetCreateHealth() / GetHealthRateMod()
-                   fallback: GetMaxHealth() / GetHealthRateMod() when create health is 0
+reference health = GetCreateHealth() / GetHealthRate()
+                   fallback: GetMaxHealth() / GetHealthRate() when create health is 0
 scaled base      = reference health * GroupN.Health
 resulting max    = recomputed from scaled base and active health modifiers
 ```
@@ -92,11 +93,11 @@ stored base flat, reference health, scaled base and resulting maximum.
 
 ### Melee and ranged physical damage
 
-`ModifyMeleeDamage` receives damage that already contains `DamageModifier * GetDamageRateMod()` and
+`ModifyMeleeDamage` receives damage that already contains `DamageModifier * GetDamageRate()` and
 has not yet been reduced by armor. The hook multiplies it by:
 
 ```text
-GroupN.Damage / GetDamageRateMod()
+GroupN.Damage / GetDamageRate()
 ```
 
 so the global melee rate is canceled and the tier coefficient takes its place. With the current normal
@@ -105,14 +106,14 @@ rate, a pre-rate hit of 100 becomes 135 natively and 195 under tier 6, not `135 
 ### Direct offensive spells
 
 `ModifySpellDamageTaken` runs after `SpellDamageBonusDone`. A weapon-damage spell is checked first and
-resolves through `EffectWeaponDmg`, so it already carries `GetDamageRateMod()` (the melee/ranged rate).
+resolves through `EffectWeaponDmg`, so it already carries `GetDamageRate()` (the melee/ranged rate).
 Otherwise, a spell with `SPELL_ATTR3_IGNORE_CASTER_MODIFIERS` uses the coefficient alone. All remaining
-spells carry `GetSpellDamageRateMod()`. The hook uses:
+spells carry `GetSpellDamageRate()`. The hook uses:
 
 ```text
-GroupN.Damage / GetDamageRateMod()       weapon-damage spell (EffectWeaponDmg)
-GroupN.Damage                            ignore-caster-modifiers case, non-weapon spell
-GroupN.Damage / GetSpellDamageRateMod()  all remaining spells
+GroupN.Damage / GetDamageRate()       weapon-damage spell (EffectWeaponDmg)
+GroupN.Damage                         ignore-caster-modifiers case, non-weapon spell
+GroupN.Damage / GetSpellDamageRate()  all remaining spells
 ```
 
 The weapon-damage branch is selected when any spell effect is `SPELL_EFFECT_WEAPON_DAMAGE`,
@@ -128,7 +129,7 @@ spell rate is applied after the hook. The module scales a tick only when the spe
 `SPELL_AURA_PERIODIC_DAMAGE` effect and none of `SPELL_AURA_PERIODIC_HEAL`,
 `SPELL_AURA_OBS_MOD_HEALTH`, `SPELL_AURA_PERIODIC_LEECH`,
 `SPELL_AURA_PERIODIC_DAMAGE_PERCENT` or `SPELL_AURA_PERIODIC_HEALTH_FUNNEL`; ambiguous spells are
-skipped. The factor is `GroupN.Damage / GetSpellDamageRateMod()`, or `GroupN.Damage` alone when the spell
+skipped. The factor is `GroupN.Damage / GetSpellDamageRate()`, or `GroupN.Damage` alone when the spell
 ignores caster modifiers. That yields the replacement once the later rate application completes.
 
 ### Safety caps
