@@ -261,7 +261,7 @@ Modifications locales actuelles (commits au-dessus de l'upstream) :
 
 | Sujet | Où | Effet |
 |---|---|---|
-| Groupes de 6 | `src/server/game/Groups/*`, `Map.cpp` | 6 joueurs par groupe, raid toujours à 40, LFG limité à 5 |
+| Groupes de 6 | Module `modules/mod-six-player-party` (dépôt séparé, non suivi) + hook `GroupScript::GetMaxPartySize` dans `src/server/game/Groups/*`, `Map.cpp` | 6 joueurs par groupe via le module, raid toujours à 40, LFG limité à 5 |
 | Créatures vanilla-like | `conf/dist/env.ac` (`AC_RATE_CREATURE_*`) | normaux ×1,35 dégâts / ×1,20 PV / ×1,30 sorts ; élites ×1,40 / ×1,50 / ×1,30 ; partout y compris instances |
 | Aggro +20 % | `conf/dist/env.ac` (`AC_RATE_CREATURE_AGGRO`) | rayon d'aggro des créatures ×1,20 (redémarrage requis) |
 | Régénération vanilla 1.12 | `VanillaRegen.Enable=1` (`AC_VANILLA_REGEN_ENABLE`), `AC_RATE_HEALTH`/`AC_RATE_MANA=1.0` | PV/mana hors combat recalculés avec les formules 1.12.1 (classe + Esprit), au lieu des tables DBC WotLK |
