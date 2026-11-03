@@ -30,7 +30,9 @@ vendorisé dans le dépôt serveur et n'a pas de `.git`, comparaison avec le dé
 - 8 commits d'avance côté amont, de la 2.5.7 à la 2.7.0.
 - Dernier commit : `988a1d3` (2026-11-02), « Previews: turn, move and zoom, saved per creature ».
 - **Modification locale non commitée** : `data/sql/db-world/updates/mod_forever_journal_script_spells.sql`
-  (148 suppressions, entrées `_40` retirées). La sauvegarder avant toute mise à jour.
+  (diff : 152 insertions / 300 suppressions, net −148 lignes ; retrait des entrées `_40` et
+  réorganisation de quelques `INSERT`/`Sort`, notamment `boss_eregos` et `boss_gormok`). La
+  sauvegarder avant toute mise à jour.
 - Les 8 commits amont ne touchent pas ce fichier SQL, donc un `pull --ff-only` devrait conserver
   la modification locale ; sauvegarde recommandée malgré tout.
 - Mettre à jour **tout** le dossier `addon/Journal` en même temps que le module (nouveaux
