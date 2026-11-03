@@ -1,5 +1,9 @@
 # World Party Scaling
 
+[![core-build](https://github.com/Phanty78/mod-world-party-scaling/actions/workflows/core-build.yml/badge.svg?branch=main)](https://github.com/Phanty78/mod-world-party-scaling/actions/workflows/core-build.yml)
+[![Codestyle Checks](https://github.com/Phanty78/mod-world-party-scaling/actions/workflows/core_codestyle.yml/badge.svg?branch=main)](https://github.com/Phanty78/mod-world-party-scaling/actions/workflows/core_codestyle.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 `mod-world-party-scaling` is an AzerothCore WotLK module that scales open-world creatures to the size of
 the online party that engages them. A creature pulled by a group of six receives the tier 6 health,
 damage and kill-XP coefficients; with the default coefficients, a solo pull uses tier 1 (1.00) and

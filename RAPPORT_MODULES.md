@@ -1,13 +1,25 @@
 # Rapport de mise à jour des modules
 
-Audit du 2026-11-03. Aucune mise à jour n'a été appliquée et aucun rebuild n'a été lancé.
+Audit du 2026-11-03. Les mises à jour git ont été appliquées ensuite ; aucun rebuild ni restart n'a été lancé.
 
 Méthode : `git fetch --all --prune` dans chaque dépôt imbriqué, comparaison `HEAD...@{u}`,
 `git status --porcelain` pour les modifications locales. Pour `mod-world-party-scaling`, qui est
 vendorisé dans le dépôt serveur et n'a pas de `.git`, comparaison avec le dépôt public
 `Phanty78/mod-world-party-scaling`.
 
-## Résumé
+## Mises à jour appliquées (git uniquement)
+
+| Module | Avant | Après | Remarque |
+|---|---|---|---|
+| `mod-forever-journal` | `4300e6b` | `988a1d3` (2.7.0) | modification SQL locale préservée (stash/pop) |
+| `mod-combat-ai` | `b09aa11` | `7303e39` | arbre propre |
+| `mod-hunger-thirst` | `9479227` | `5ae6fc2` | arbre propre |
+| `mod-world-party-scaling` (public) | `930c373` | `d1761c0` | docs synchronisées ; vendorisé identique hors `README.md.orig` |
+
+Aucun build, aucun redémarrage : le conteneur `ac-worldserver` est resté `running` sur son binaire
+existant.
+
+## Résumé de l'audit (avant application)
 
 | Module | HEAD | Upstream | Écart | État | Action |
 |---|---|---|---|---|---|
@@ -56,15 +68,15 @@ vendorisé dans le dépôt serveur et n'a pas de `.git`, comparaison avec le dé
 ### `mod-world-party-scaling` — synchronisation de docs
 
 - Le code et la configuration vendorisés correspondent au dépôt public `main` `930c373` (v1.1.0).
-- 4 fichiers divergent : `README.md`, `TEST_REPORT.md`, `docs/COMPATIBILITY.md`,
+- 4 fichiers divergeaient lors de l'audit : `README.md`, `TEST_REPORT.md`, `docs/COMPATIBILITY.md`,
   `.github/workflows/core_codestyle.yml`.
 - Cause : les docs locales ont été mises à jour pour le hook runtime `GroupScript::GetMaxPartySize()`
-  et `mod-six-player-party`, alors que le README public décrit encore l'ancien patch core
+  et `mod-six-player-party`, alors que le README public décrivait encore l'ancien patch core
   `MAXGROUPSIZE = 6`.
 - Le fichier `README.md.orig` existe seulement dans le dossier vendorisé ; il est ignoré et doit
   être supprimé.
-- Action : pousser les docs locales vers `Phanty78/mod-world-party-scaling` et supprimer le `.orig`.
-  Pas de mise à jour de code à faire.
+- Action : docs locales poussées dans `d1761c0` ; le dossier vendorisé et le dépôt public sont
+  identiques hors `README.md.orig`. Pas de mise à jour de code à faire.
 
 ## Points d'attention
 
@@ -82,10 +94,14 @@ vendorisé dans le dépôt serveur et n'a pas de `.git`, comparaison avec le dé
 - **`mod-six-player-party`** : à jour. Rappel : il exige le hook core `GetMaxPartySize()` ; le core
   local le fournit, un core AzerothCore stock non.
 
-## Ordre conseillé
+## Reste à faire (hors git)
 
-1. `mod-forever-journal` : le seul vrai update fonctionnel ; préparer la sauvegarde SQL et l'addon.
-2. `mod-combat-ai` : faible risque, rebuild pour les logs.
-3. `mod-hunger-thirst` : docs seulement.
-4. Synchroniser `mod-world-party-scaling` avec son dépôt public.
-5. Ne rien faire pour les autres modules.
+1. Rebuild + restart quand tu le décides : `mod-forever-journal` 2.7.0 et `mod-combat-ai` ne sont
+   pas actifs tant que le binaire n'est pas reconstruit.
+2. Déployer le nouvel addon client `addon/Journal` 2.7.0 en même temps que le module.
+3. Avant le prochain démarrage du worldserver, appliquer les migrations DB du merge upstream
+   (`acore_string` breaking + nouveaux SQL `db_characters`/`db_world`).
+4. Ne pas mettre à jour `mod-challenge-modes` ni le tag `pre-native-split` de `mod-hunts` sans
+   traitement dédié.
+
+Aucun de ces points n'a été exécuté : le serveur tourne toujours sur l'ancien binaire.
