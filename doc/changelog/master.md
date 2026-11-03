@@ -3,7 +3,10 @@
 ### Added
 - `vanilla_spell_cost` world table and a `SpellInfo::CalcPowerCost` override that
   restores the flat 1.12.1 mana cost of player damage/heal spells before talent
-  and aura cost modifiers. Data: `data/sql/updates/db_world/2026_10_30_02.sql`.
+  and aura cost modifiers. Data: `data/sql/updates/db_world/2026_10_30_02.sql`;
+  the module ships the same table as
+  `data/sql/db-world/vanilla_spell_cost.sql` (idempotent), so it can create the
+  `acore_world` data on its own.
 - `VanillaRegen.Enable` (env: `AC_VANILLA_REGEN_ENABLE`) to use the exact 1.12.1
   player HP/mana regeneration formulas (class + Spirit) instead of the 3.3.5
   `gt*regen` DBC tables.
@@ -24,7 +27,9 @@
   not scaled down.
 
 ### How to upgrade
-- Apply `data/sql/updates/db_world/2026_10_30_02.sql` (or rebuild `ac-db-import`).
+- Apply `data/sql/updates/db_world/2026_10_30_02.sql`, or rebuild `ac-db-import` with
+  the module installed (its `data/sql/db-world/vanilla_spell_cost.sql` creates and
+  populates the same table).
 - Keep `AC_VANILLA_REGEN_ENABLE=1`, `AC_RATE_HEALTH=1.0`, `AC_RATE_MANA=1.0`,
   `AC_RATE_CREATURE_AGGRO=1.20` in `conf/dist/env.ac`.
 - Restart the worldserver (aggro and spell-info caches are read at startup).

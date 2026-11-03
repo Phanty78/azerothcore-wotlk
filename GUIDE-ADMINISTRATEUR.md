@@ -280,6 +280,8 @@ Après l'ajout d'un fichier `data/sql/updates/db_world/*.sql`, reconstruire auss
 `docker compose build ac-db-import && docker compose up -d`. Le service `ac-db-import` applique les
 fichiers manquants au démarrage et enregistre leur hash dans `acore_world.updates`. Le worldserver, lui,
 tourne avec `AC_UPDATES_ENABLE_DATABASES=0` et n'applique rien.
+Les SQL livrés par les modules (`modules/<module>/data/sql/db-world/`) sont embarqués de la même
+façon : reconstruire aussi `ac-db-import` après leur ajout ou leur modification.
 
 ⚠️ **Piège du fichier de conf monté** : `apps/docker/entrypoint.sh` copie les `.conf.dist` avec
 `cp -n` (jamais d'écrasement). Après un rebuild, un nouveau fichier monté ne recevra **pas** les
@@ -498,9 +500,10 @@ Les variables `AC_*` de `conf/dist/env.ac`, elles, s'appliquent **sans** modific
 ### Module coûts de mana vanilla (`mod-vanilla-spell-cost`)
 
 - **Rôle** : le module ne calcule pas les coûts — ils viennent de la table `vanilla_spell_cost`
-  (`data/sql/updates/db_world/2026_10_30_02.sql`, 370 sorts de dégâts/soins de joueur de rang
-  ≤ 60) et de la surcharge `SpellInfo::CalcPowerCost`. Il fournit la moitié **serveur** qui
-  répond à l'addon client, plus sa configuration.
+  (370 sorts de dégâts/soins de joueur de rang ≤ 60, livrée par le module dans
+  `data/sql/db-world/vanilla_spell_cost.sql` et, côté dépôt du serveur, dans
+  `data/sql/updates/db_world/2026_10_30_02.sql`) et de la surcharge `SpellInfo::CalcPowerCost`.
+  Il fournit la moitié **serveur** qui répond à l'addon client, plus sa configuration.
 - **Pourquoi un addon** : le client 3.3.5a affiche les coûts de ses propres fichiers de données,
   où ces 370 sorts valent un **pourcentage de mana de base**. Sans l'addon, la coloration bleue
   « pas assez de mana » de l'icône de la barre d'action et les infobulles restent donc fausses, alors que le
