@@ -18,6 +18,7 @@
 #ifndef SCRIPT_OBJECT_GROUP_SCRIPT_H_
 #define SCRIPT_OBJECT_GROUP_SCRIPT_H_
 
+#include "Group.h"
 #include "ObjectGuid.h"
 #include "ScriptObject.h"
 #include <vector>
@@ -31,6 +32,7 @@ enum GroupHook
     GROUPHOOK_ON_DISBAND,
     GROUPHOOK_CAN_GROUP_JOIN_BATTLEGROUND_QUEUE,
     GROUPHOOK_ON_CREATE,
+    GROUPHOOK_GET_MAX_PARTY_SIZE,
     GROUPHOOK_END
 };
 
@@ -62,6 +64,9 @@ public:
     [[nodiscard]] virtual bool CanGroupJoinBattlegroundQueue(Group const* /*group*/, Player* /*member*/, Battleground const* /*bgTemplate*/, uint32 /*MinPlayerCount*/, bool /*isRated*/, uint32 /*arenaSlot*/) { return true; }
 
     virtual void OnCreate(Group* /*group*/, Player* /*leader*/) { }
+
+    // Returns the maximum number of players allowed in a non-raid group.
+    [[nodiscard]] virtual uint8 GetMaxPartySize() const { return MAXGROUPSIZE; }
 };
 
 #endif

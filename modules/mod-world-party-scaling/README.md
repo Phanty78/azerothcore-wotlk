@@ -37,7 +37,8 @@ The group size is resolved from the player who owns the victim at the moment com
   flying or otherwise far away still counts.
 - Disconnected or logged-out characters are not in the group reference list and are excluded.
 - The result is clamped from 1 to 6. Groups larger than six use the tier 6 coefficients. The server's
-  six-player party support sets `MAXGROUPSIZE` to 6; larger sizes only occur in raid groups.
+  six-player support comes from the `mod-six-player-party` module, which sets the runtime party cap
+  to 6; `MAXGROUPSIZE` remains the core default 5, so only raid groups exceed six members.
 - Pets, guardians, totems and summons resolve to their owner through
   `GetCharmerOrOwnerPlayerOrPlayerItself()`. The owner's group is counted. A creature with no player
   owner is not scaled, and a summon is never scaled itself even when its owner's group is counted.
@@ -353,9 +354,10 @@ by both. Keep AutoBalance configured for dungeons and raids; the open world belo
 
 ### Six-player party support
 
-This server has a custom core patch that sets `MAXGROUPSIZE` to 6 for parties. The module counts the
-same online members and clamps at six, so a six-player party always maps to tier 6. A raid group larger
-than six also uses tier 6 by design.
+The server's six-player parties are provided by the `mod-six-player-party` module, which sets the
+runtime party cap to 6; `MAXGROUPSIZE` remains the core default 5. This module counts the same online
+members and clamps at six, so a six-player party always maps to tier 6. A raid group larger than six
+also uses tier 6 by design.
 
 ### Other modules and creatures
 

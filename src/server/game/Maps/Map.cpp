@@ -2344,9 +2344,13 @@ uint32 InstanceMap::GetMaxPlayers() const
     MapDifficulty const* mapDiff = GetMapDifficulty();
     uint32 maxPlayers = (mapDiff && mapDiff->maxPlayers) ? mapDiff->maxPlayers : GetEntry()->maxPlayers;
 
-    // Une instance non-raid doit pouvoir accueillir une équipe complète
-    if (!IsRaid() && maxPlayers < MAXGROUPSIZE)
-        return MAXGROUPSIZE;
+    // A non-raid instance must be able to hold one full party, whose size is defined by scripts.
+    if (!IsRaid())
+    {
+        uint32 maxPartySize = sScriptMgr->GetMaxPartySize();
+        if (maxPlayers < maxPartySize)
+            maxPlayers = maxPartySize;
+    }
 
     return maxPlayers;
 }

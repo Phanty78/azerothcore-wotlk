@@ -19,6 +19,8 @@
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
 
+#include <algorithm>
+
 void ScriptMgr::OnGroupAddMember(Group* group, ObjectGuid guid)
 {
     ASSERT(group);
@@ -62,6 +64,15 @@ bool ScriptMgr::CanGroupJoinBattlegroundQueue(Group const* group, Player* member
 void ScriptMgr::OnCreate(Group* group, Player* leader)
 {
     CALL_ENABLED_HOOKS(GroupScript, GROUPHOOK_ON_CREATE, script->OnCreate(group, leader));
+}
+
+uint8 ScriptMgr::GetMaxPartySize() const
+{
+    uint8 maxPartySize = MAXGROUPSIZE;
+
+    CALL_ENABLED_HOOKS(GroupScript, GROUPHOOK_GET_MAX_PARTY_SIZE, maxPartySize = std::max(maxPartySize, script->GetMaxPartySize()));
+
+    return maxPartySize;
 }
 
 GroupScript::GroupScript(char const* name, std::vector<uint16> enabledHooks)

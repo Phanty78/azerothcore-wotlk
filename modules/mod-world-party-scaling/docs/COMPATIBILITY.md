@@ -11,7 +11,7 @@ Compilation and test outcomes live in `TEST_REPORT.md`.
 | Creature rates | `conf/dist/env.ac` (`Rate.Creature.*`) | Every map, instances included. |
 | Global aggro radius | `conf/dist/env.ac`, native `Rate.Creature.Aggro` | `1.20`, applied on every map. |
 | Instance difficulty module | `modules/` | No AutoBalance module is installed. |
-| Party size cap | `src/server/game/Groups/Group.h` | `MAXGROUPSIZE` is 6. |
+| Party size cap | `src/server/game/Groups/Group.h`, `modules/mod-six-player-party` | `MAXGROUPSIZE` remains the core default 5; the `mod-six-player-party` module raises the runtime party cap to 6. |
 | World map test | `src/server/game/Maps/Map.h` | `IsWorldMap()` is true only for `MAP_COMMON`. |
 
 ## Global difficulty already in effect
@@ -190,8 +190,9 @@ behaviour too, without interference. The module does not read or write AutoBalan
 
 ## Six-player party support
 
-This checkout carries a custom party-size patch. `Group.h:44` defines `MAXGROUPSIZE` as 6, and
-`Group::GetFirstMember()` (`Group.h:254`) exposes the group's member reference list. The module walks
+Six-player parties are provided by the `mod-six-player-party` module, which implements the
+`GroupScript::GetMaxPartySize()` hook and raises the runtime party cap to 6. `MAXGROUPSIZE` remains the
+core default 5. `Group::GetFirstMember()` exposes the group's member reference list. The module walks
 that list and counts only entries with a non-null `GetSource()`, i.e. online members. Position, map,
 instance, distance and alive/dead state do not matter for the count. Disconnected members are removed
 from the list and are not counted.

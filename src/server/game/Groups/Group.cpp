@@ -2502,7 +2502,7 @@ void Group::SetLfgRoles(ObjectGuid guid, const uint8 roles)
 
 bool Group::IsFull() const
 {
-    return isRaidGroup() ? (m_memberSlots.size() >= MAXRAIDSIZE) : (m_memberSlots.size() >= MAXGROUPSIZE);
+    return isRaidGroup() ? (m_memberSlots.size() >= MAXRAIDSIZE) : (m_memberSlots.size() >= uint32(sScriptMgr->GetMaxPartySize()));
 }
 
 bool Group::isLFGGroup(bool restricted /*= false*/) const

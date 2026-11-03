@@ -41,10 +41,10 @@ class ToCloud9GroupHooks;
 
 struct MapEntry;
 
-#define MAXGROUPSIZE 6                                          // capacité d'une équipe (party)
+#define MAXGROUPSIZE 5                                          // default party size, modules may raise it at runtime
 #define MAXRAIDSIZE 40
-#define MAX_RAID_SUBGROUP_SIZE 5                                // joueurs par sous-groupe de raid (protocole client, ne pas changer)
-#define MAX_RAID_SUBGROUPS (MAXRAIDSIZE / MAX_RAID_SUBGROUP_SIZE)   // reste 8
+#define MAX_RAID_SUBGROUP_SIZE 5                                // players per raid subgroup (client protocol, do not change)
+#define MAX_RAID_SUBGROUPS (MAXRAIDSIZE / MAX_RAID_SUBGROUP_SIZE)   // 8 subgroups
 #define TARGETICONCOUNT 8
 
 enum RollVote : uint8

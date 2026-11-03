@@ -15,6 +15,8 @@ This report records what was actually executed on this checkout. Anything not ex
 - Live stack: Docker `ac-worldserver`, `ac-authserver`, MySQL 8.4.11 (`ac-database`).
 - Existing global rates from `conf/dist/env.ac`: normal HP 1.20, elite/rare/rare-elite/world-boss HP
   1.50, normal damage 1.35, elite damage 1.40, spell damage 1.30, aggro 1.20.
+- Six-player cases: the server ran with a runtime party cap of 6. In the current tree that cap is
+  provided by the `mod-six-player-party` module; `MAXGROUPSIZE` remains the core default 5.
 - The module configuration used the shipped defaults; `EnableDebug=1` and `Logger.module=5` were
   enabled temporarily to capture the lifecycle lines, then restored.
 
