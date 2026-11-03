@@ -3,8 +3,8 @@
 État au 2026-11-03, branche `feature/mod-world-party-scaling`.
 
 - Upstream comparé : `5c5fe0bed` (`master`)
-- Base commune : `993b45959` (dernière fusion)
-- La branche n'a pas encore mergé les 25 commits upstream suivants.
+- Dernière fusion : `e62ab7206` (upstream `5c5fe0bed`)
+- Aucun commit upstream en retard au moment de la fusion ; aucun rebuild lancé.
 
 ## Réponse courte
 
@@ -17,8 +17,20 @@
 - **Modules :** un seul est suivi dans le dépôt serveur, `mod-world-party-scaling` (copie
   vendorisée). Les dix autres, dont `mod-six-player-party`, sont des dépôts git séparés, ignorés
   par le dépôt serveur.
-- **Upstream :** la branche est en retard de 25 commits ; il faut merger/rebaser pour être
-  réellement « core + modules ».
+- **Upstream :** les 25 commits jusqu'à `5c5fe0bed` sont fusionnés dans `e62ab7206` ; aucun
+  rebuild n'a été lancé.
+
+## Dernière fusion upstream (25 commits)
+
+- **Scripts raids/donjons :** corrections Trial of the Crusader (Northrend Beasts, Anub'arak,
+  Twin Val'kyr, Touch of Light and Darkness), Ulduar (Algalon, Hodir), Karazhan (IDs DBC, Kil'rek,
+  Servant Quarters), Black Temple (Illidan, IDs), Onyxia (Lava Fissures), Durnholde (Armorer) et
+  Icecrown Citadel (Putricide).
+- **Core :** un seul pet courant par personnage, corrections vehicle (embarquement/attaque) avec
+  test, `.mute`/`.unmute` appliqués aux comptes à l'écran de sélection, hook de loot inter-faction,
+  migration `acore_string` en lignes (breaking change).
+- **DB :** imports de fichiers en attente et nouveaux SQL `db_characters`/`db_world`.
+- **Refactor :** instance Trial of the Crusader et Anub'arak alignés sur les standards C++.
 
 ## Ce qui reste dans le core
 
@@ -43,15 +55,19 @@
 
 ## Pour se rapprocher de « core + modules »
 
-1. Merger/rebaser sur `upstream/master` (25 commits de retard).
-2. Décider du sort des patchs vanilla : les garder comme patch core documenté, ou les extraire en
+1. Décider du sort des patchs vanilla : les garder comme patch core documenté, ou les extraire en
    modules quand c'est possible.
-3. Sortir `mod-world-party-scaling` du dépôt serveur et le cloner comme les autres, si son dépôt
+2. Sortir `mod-world-party-scaling` du dépôt serveur et le cloner comme les autres, si son dépôt
    public est à jour.
-4. Garder `mod-six-player-party` en dépôt séparé, avec le hook core documenté dans `docs/CORE.md`.
+3. Garder `mod-six-player-party` en dépôt séparé, avec le hook core documenté dans `docs/CORE.md`.
+4. Refaire un merge upstream régulièrement : la dernière fusion est `5c5fe0bed`.
 
 ## État déployé
 
 Le conteneur `ac-worldserver` n'a pas été rebuild : il tourne encore sur l'ancien binaire hardcodé
 6. Un rebuild depuis ce checkout inclut `modules/mod-six-player-party` et donne 6 ; un clone propre
 du dépôt serveur sans le module donne 5.
+
+La fusion upstream est purement Git : aucun rebuild n'a été lancé. La prochaine compilation devra
+aussi appliquer les mises à jour DB apportées par upstream, notamment la migration `acore_string`
+(breaking change) et les nouveaux fichiers SQL `db_characters`/`db_world`.
