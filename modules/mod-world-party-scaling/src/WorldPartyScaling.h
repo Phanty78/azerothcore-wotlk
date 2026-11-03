@@ -55,6 +55,12 @@ enum class WorldPartyScalingConfigKey : uint32
     Group4Damage,
     Group5Damage,
     Group6Damage,
+    Group1Xp,
+    Group2Xp,
+    Group3Xp,
+    Group4Xp,
+    Group5Xp,
+    Group6Xp,
     ExcludedCreatureEntries,
     ExcludedMaps,
     ExcludedZones,
@@ -74,6 +80,7 @@ public:
     [[nodiscard]] bool DebugEnabled() const;
     [[nodiscard]] float HealthMultiplier(uint32 groupSize) const;
     [[nodiscard]] float DamageMultiplier(uint32 groupSize) const;
+    [[nodiscard]] float XpMultiplier(uint32 groupSize) const;
     [[nodiscard]] bool IsEntryExcluded(uint32 entry) const;
     [[nodiscard]] bool IsMapExcluded(uint32 mapId) const;
     [[nodiscard]] bool IsZoneExcluded(uint32 zoneId) const;
@@ -84,6 +91,7 @@ private:
 
     std::array<float, MaxGroupSize> _healthMultipliers{};
     std::array<float, MaxGroupSize> _damageMultipliers{};
+    std::array<float, MaxGroupSize> _xpMultipliers{};
     std::unordered_set<uint32> _excludedEntries;
     std::unordered_set<uint32> _excludedMaps;
     std::unordered_set<uint32> _excludedZones;

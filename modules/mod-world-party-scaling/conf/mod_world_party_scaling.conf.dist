@@ -4,21 +4,24 @@
 # mod-world-party-scaling
 #
 # Scales open-world creatures to the size of the party fighting them. A creature engaged by a
-# party receives the health and damage coefficients of that party's tier, based on the number of
-# online party members counted anywhere on any map. The module only acts on world maps
-# (Map::IsWorldMap); dungeons, raids, battlegrounds and arenas are never modified.
+# party receives the health, damage and kill-experience (XP) coefficients of that party's tier,
+# based on the number of online party members counted anywhere on any map. The module only acts
+# on world maps (Map::IsWorldMap); dungeons, raids, battlegrounds and arenas are never modified.
 #
 # At engagement the module replaces the server's existing creature difficulty rates for the
 # managed creature with the coefficients below. The coefficients apply to the creature's
 # reference health and damage; the global Rate.Creature.* values from worldserver.conf and
 # conf/dist/env.ac are not multiplied on top. This keeps the result independent of the server's
-# open-world tuning. Instance rates and instance scaling are left exactly as they are.
+# open-world tuning. The core party-size kill-XP bonus is likewise replaced by the tier's XP
+# coefficient. Instance rates and instance scaling are left exactly as they are.
 #
-# The coefficients are experimental; adjust them to taste.
-# They are read from the group tier at the moment combat starts and stay frozen for that fight.
+# The health, damage and XP coefficients are experimental; adjust them to taste.
+# The group tier is selected at the moment combat starts and stays frozen for that fight. Health and
+# damage coefficients are captured with it; the XP coefficient for that tier is read when the kill is
+# rewarded.
 #
 # The module has no database tables and no persistent state. Setting Enable to 0 leaves the
-# native creature statistics untouched.
+# native creature statistics and the core kill XP untouched.
 #
 # This file must be installed as env/dist/etc/modules/mod_world_party_scaling.conf (without the
 # .dist suffix). A worldserver rebuild plus install places the .dist file there; the native
@@ -37,10 +40,10 @@ WorldPartyScaling.Enable = 1
 ####################################################################################################
 # Party size tiers
 #
-# One health coefficient and one damage coefficient per party size. Group1 applies to a solo
-# player or a one-member party; Group2 to two members, and so on. A group of seven or more uses
-# the Group6 tier: the coefficients above six are intentionally not defined, so larger groups
-# never receive more than the tier 6 values.
+# One health coefficient, one damage coefficient and one kill-XP coefficient per party size.
+# Group1 applies to a solo player or a one-member party; Group2 to two members, and so on. A group
+# of seven or more uses the Group6 tier: the coefficients above six are intentionally not defined,
+# so larger groups never receive more than the tier 6 values.
 #
 # Health scales the health base used to recompute maximum health. Damage scales melee and ranged
 # physical damage, direct offensive spells, and standard damage-over-time ticks. For direct spells,
@@ -49,12 +52,14 @@ WorldPartyScaling.Enable = 1
 # rate. A mixed weapon + school-damage spell uses the melee factor for its aggregate damage.
 # Periodic ticks are scaled only for standard PERIODIC_DAMAGE spells without heal,
 # SPELL_AURA_OBS_MOD_HEALTH, leech, percent or health-funnel effects.
-# It does not scale healing, absorbs, armor, resistances, experience, loot, drop rates or special
-# creature abilities.
+# It does not scale healing, absorbs, armor, resistances, loot, drop rates or special creature
+# abilities. Kill experience is scaled by the kill-XP coefficients described at the end of this
+# section.
 #
-# Values are multipliers against the creature's reference statistics; 1.00 keeps the creature
-# at its reference value. They are not stacked on the server's global creature rates. Health values
-# must be finite and greater than zero; damage values must be finite and greater than or equal to zero.
+# Health and damage values are multipliers against the creature's reference statistics; 1.00 keeps
+# the creature at its reference value. They are not stacked on the server's global creature rates.
+# Health values must be finite and greater than zero; damage values must be finite and greater than
+# or equal to zero.
 # Invalid values fall back to the defaults above and are reported in the log.
 # There is no user-facing coefficient ceiling. Internally, the scaled health base is capped at
 # 1073741824 before auras compose maximum health, and scaled damage at 1073741823 (with the 1-point
@@ -120,6 +125,71 @@ WorldPartyScaling.Group5.Damage = 1.80
 
 WorldPartyScaling.Group6.Health = 5.20
 WorldPartyScaling.Group6.Damage = 1.95
+
+#
+# Kill experience
+#
+# GroupN.XP is the net total kill-XP multiplier for the party. For a creature managed by this
+# module it replaces the core party-size XP bonus (Acore::XP::xp_in_group_rate) instead of
+# stacking on top of it: the module divides the core bonus back out for each member and applies
+# the selected tier coefficient. The core still splits the resulting kill XP among the eligible
+# group members in reward range, so the coefficient changes the total awarded, not the split.
+# A value of 1.00 leaves the base kill XP in place without a party-size bonus.
+#
+# XP uses the same frozen engagement tier as health and damage. Only XPSOURCE_KILL on a creature
+# that the module is currently scaling is affected; quest, exploration, battleground and instance
+# experience, and kills of excluded or otherwise unscaled creatures, are untouched. A value of 0
+# disables kill XP for that tier. Values must be finite and greater than or equal to zero; invalid
+# values fall back to the defaults and are reported in the log.
+#
+
+#
+#    WorldPartyScaling.Group1.XP
+#        Description: Net kill-XP multiplier for one player (solo).
+#        Default:     1.00
+#
+
+WorldPartyScaling.Group1.XP = 1.00
+
+#
+#    WorldPartyScaling.Group2.XP
+#        Description: Net kill-XP multiplier for a party of two.
+#        Default:     1.10
+#
+
+WorldPartyScaling.Group2.XP = 1.10
+
+#
+#    WorldPartyScaling.Group3.XP
+#        Description: Net kill-XP multiplier for a party of three.
+#        Default:     1.20
+#
+
+WorldPartyScaling.Group3.XP = 1.20
+
+#
+#    WorldPartyScaling.Group4.XP
+#        Description: Net kill-XP multiplier for a party of four.
+#        Default:     1.30
+#
+
+WorldPartyScaling.Group4.XP = 1.30
+
+#
+#    WorldPartyScaling.Group5.XP
+#        Description: Net kill-XP multiplier for a party of five.
+#        Default:     1.40
+#
+
+WorldPartyScaling.Group5.XP = 1.40
+
+#
+#    WorldPartyScaling.Group6.XP
+#        Description: Net kill-XP multiplier for a party of six, and for any larger group.
+#        Default:     1.50
+#
+
+WorldPartyScaling.Group6.XP = 1.50
 
 ####################################################################################################
 # Diagnostics

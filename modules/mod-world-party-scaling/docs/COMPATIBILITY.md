@@ -132,6 +132,33 @@ spell rate is applied after the hook. The module scales a tick only when the spe
 skipped. The factor is `GroupN.Damage / GetSpellDamageRate()`, or `GroupN.Damage` alone when the spell
 ignores caster modifiers. That yields the replacement once the later rate application completes.
 
+### Experience
+
+Kill XP is adjusted only for a creature that has an active module state. `KillRewarder::_RewardXP`
+computes each member's award with the core party-size bonus,
+`Acore::XP::xp_in_group_rate(count, isRaid)`, where `count` is the number of alive group members that
+are the killer or within reward distance of the victim. The module's `OnPlayerGiveXP` hook runs
+immediately before `Player::GiveXP`, while the frozen engagement state is still present, and compensates
+per member:
+
+```text
+net amount = round(core amount * GroupN.XP / xp_in_group_rate(count, false))
+```
+
+The same `count` rule as the core is used; a player with no group has a core rate of `1.0`. Because the
+module only handles world maps, `isRaid` is always false for a scaled victim. `GroupN.XP` is therefore
+the net total kill-XP multiplier for the party: it replaces the core party-size bonus instead of
+stacking on it, and the core still divides the result among the eligible members. The XP tier is the
+same frozen engagement tier that selected health and damage, so later group changes cannot alter it; the
+coefficient value for that tier is read when the reward is computed, so a configuration reload applies
+to kills rewarded afterward. A coefficient of `0` disables kill XP for that tier, and the final award is
+clamped to the `uint32` range with a minimum of one point when both the core award and the coefficient
+are above zero.
+
+Only `XPSOURCE_KILL` on a scaled creature is affected. Quest, exploration, battleground and instance XP,
+and kills of excluded or otherwise unscaled creatures, keep the core value, including the core
+party-size bonus.
+
 ### Safety caps
 
 The scaled health base is capped at `1,073,741,824` (`1 << 30`) before `UpdateMaxHealth()` composes
@@ -200,6 +227,7 @@ Nothing in this module runs on a dungeon, raid, battleground or arena map. In th
 - Normal health remains at `1.20`; elite, rare, rare elite and world boss health remains at `1.50`.
 - Melee damage remains at `1.35` or `1.40`.
 - Spell damage remains at `1.30`.
+- Kill XP remains at the core value, including the core party-size bonus.
 - Aggro radius remains at `1.20`.
 - Any future AutoBalance scaling continues to apply as configured.
 

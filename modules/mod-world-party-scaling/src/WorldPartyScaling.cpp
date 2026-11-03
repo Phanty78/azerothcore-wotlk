@@ -23,6 +23,7 @@
 #include "WorldPartyScaling.h"
 
 #include "Creature.h"
+#include "Formulas.h"
 #include "Group.h"
 #include "GroupReference.h"
 #include "Log.h"
@@ -66,6 +67,11 @@ bool IsPositiveHealth(float const& value)
 }
 
 bool IsNonNegativeDamage(float const& value)
+{
+    return std::isfinite(value) && value >= 0.0f;
+}
+
+bool IsNonNegativeXp(float const& value)
 {
     return std::isfinite(value) && value >= 0.0f;
 }
@@ -225,6 +231,39 @@ uint32 GetOnlineGroupSize(Player* player)
     return std::clamp<uint32>(onlineMembers, 1, MaxGroupSize);
 }
 
+// Mirrors KillRewarder::_InitGroupData/_groupRate: only alive members in the loot recipient's group that are the
+// killer or within group reward distance of the victim contribute, and the module only scales open-world maps.
+float GetCoreGroupRate(Player* player, Creature* victim)
+{
+    if (!player || !victim)
+        return 1.0f;
+
+    Group* group = player->GetGroup();
+    if (!group)
+        return 1.0f;
+
+    // Unit::Kill falls back to a group member in loot distance when the stored loot recipient is unavailable.
+    // That fallback member is necessarily in group reward distance, so the current reward recipient is a safe
+    // stand-in for the killer-count rule when the stored recipient cannot be used.
+    Player* killer = victim->GetLootRecipient();
+    if (!killer || !killer->IsInMap(victim))
+        killer = player;
+
+    uint32 count = 0;
+    for (GroupReference* reference = group->GetFirstMember(); reference; reference = reference->next())
+    {
+        Player* member = reference->GetSource();
+        if (!member)
+            continue;
+
+        if ((killer == member || member->IsAtGroupRewardDistance(victim)) && member->IsAlive())
+            ++count;
+    }
+
+    float const rate = Acore::XP::xp_in_group_rate(count, false);
+    return std::isfinite(rate) && rate > 0.0f ? rate : 1.0f;
+}
+
 bool IsCreatureEligible(Creature* creature, Player* engagingPlayer)
 {
     if (!creature || !creature->IsAlive() || !creature->IsInWorld())
@@ -371,6 +410,7 @@ public:
     void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage, SpellInfo const* spellInfo);
     void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage,
         SpellInfo const* spellInfo);
+    void OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource);
 
 private:
     WorldPartyScalingMgr() = default;
@@ -569,6 +609,35 @@ void WorldPartyScalingMgr::ModifyPeriodicDamageAurasTick(Unit* target, Unit* att
     damage = ScaleUnsignedDamage(damage, factor);
 }
 
+void WorldPartyScalingMgr::OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource)
+{
+    if (!amount || xpSource != PlayerXPSource::XPSOURCE_KILL || !player || !victim
+        || !g_WorldPartyScalingConfig.Enabled())
+        return;
+
+    Creature* creature = victim->ToCreature();
+    if (!creature)
+        return;
+
+    ActiveScaling state;
+    if (!FindState(GetScalingKey(creature), state))
+        return;
+
+    float const desired = g_WorldPartyScalingConfig.XpMultiplier(state.groupSize);
+    if (!(desired > 0.0f))
+    {
+        amount = 0;
+        return;
+    }
+
+    // The core already applied its party-size rate to this amount; divide it out so the configured coefficient is
+    // the net multiplier versus the solo baseline, then clamp to a valid non-zero XP value.
+    double const coreRate = double(GetCoreGroupRate(player, creature));
+    double const scaled = double(amount) * double(desired) / coreRate;
+    double const upperBound = double(std::numeric_limits<uint32>::max());
+    amount = static_cast<uint32>(std::llround(std::clamp(scaled, 1.0, upperBound)));
+}
+
 void WorldPartyScalingMgr::RestoreAndErase(Creature* creature)
 {
     if (!creature)
@@ -599,12 +668,12 @@ void WorldPartyScalingMgr::LogStart(Creature* creature, ActiveScaling const& sta
     LOG_DEBUG("module",
         "mod-world-party-scaling: scaling entry {} guid {} for online group size {} (tier {}): health x{:.2f} "
         "base flat {:.2f} -> {} (reference {}, resulting max {}), melee x{:.2f} (old rate {:.2f}), "
-        "spell x{:.2f} (old rate {:.2f}), old health rate {:.2f}",
+        "spell x{:.2f} (old rate {:.2f}), xp x{:.2f}, old health rate {:.2f}",
         creature->GetEntry(), creature->GetGUID().ToString(), static_cast<uint32>(state.groupSize),
         static_cast<uint32>(state.groupSize), state.healthCoefficient, state.originalBaseFlat,
         state.scaledBaseMaxHealth, state.referenceMaxHealth, creature->GetMaxHealth(),
         state.damageCoefficient, state.oldMeleeRate, state.damageCoefficient, state.oldSpellRate,
-        state.oldHealthRate);
+        g_WorldPartyScalingConfig.XpMultiplier(state.groupSize), state.oldHealthRate);
 }
 
 void WorldPartyScalingMgr::LogRestore(Creature* creature, ActiveScaling const& state) const
@@ -614,10 +683,11 @@ void WorldPartyScalingMgr::LogRestore(Creature* creature, ActiveScaling const& s
 
     LOG_DEBUG("module",
         "mod-world-party-scaling: restored entry {} guid {} to base flat {:.2f} (scaled base was {}, reference {}, "
-        "online group size {} (tier {}), health x{:.2f}, damage x{:.2f}), resulting max {}",
+        "online group size {} (tier {}), health x{:.2f}, damage x{:.2f}, xp x{:.2f}), resulting max {}",
         creature->GetEntry(), creature->GetGUID().ToString(), state.originalBaseFlat, state.scaledBaseMaxHealth,
         state.referenceMaxHealth, static_cast<uint32>(state.groupSize), static_cast<uint32>(state.groupSize),
-        state.healthCoefficient, state.damageCoefficient, creature->GetMaxHealth());
+        state.healthCoefficient, state.damageCoefficient,
+        g_WorldPartyScalingConfig.XpMultiplier(state.groupSize), creature->GetMaxHealth());
 }
 }
 
@@ -668,6 +738,24 @@ void WorldPartyScalingConfig::BuildConfigCache()
     };
     constexpr std::array<float, MaxGroupSize> DamageDefaults = { 1.00f, 1.35f, 1.50f, 1.65f, 1.80f, 1.95f };
 
+    constexpr std::array<WorldPartyScalingConfigKey, MaxGroupSize> XpKeys = {
+        WorldPartyScalingConfigKey::Group1Xp,
+        WorldPartyScalingConfigKey::Group2Xp,
+        WorldPartyScalingConfigKey::Group3Xp,
+        WorldPartyScalingConfigKey::Group4Xp,
+        WorldPartyScalingConfigKey::Group5Xp,
+        WorldPartyScalingConfigKey::Group6Xp
+    };
+    constexpr std::array<std::string_view, MaxGroupSize> XpNames = {
+        "WorldPartyScaling.Group1.XP",
+        "WorldPartyScaling.Group2.XP",
+        "WorldPartyScaling.Group3.XP",
+        "WorldPartyScaling.Group4.XP",
+        "WorldPartyScaling.Group5.XP",
+        "WorldPartyScaling.Group6.XP"
+    };
+    constexpr std::array<float, MaxGroupSize> XpDefaults = { 1.00f, 1.10f, 1.20f, 1.30f, 1.40f, 1.50f };
+
     for (uint32 tier = 0; tier < MaxGroupSize; ++tier)
     {
         SetConfigValue<float>(HealthKeys[tier], std::string(HealthNames[tier]), HealthDefaults[tier],
@@ -677,6 +765,10 @@ void WorldPartyScalingConfig::BuildConfigCache()
         SetConfigValue<float>(DamageKeys[tier], std::string(DamageNames[tier]), DamageDefaults[tier],
             ConfigValueCache::Reloadable::Yes, IsNonNegativeDamage, ">= 0");
         _damageMultipliers[tier] = GetConfigValue<float>(DamageKeys[tier]);
+
+        SetConfigValue<float>(XpKeys[tier], std::string(XpNames[tier]), XpDefaults[tier],
+            ConfigValueCache::Reloadable::Yes, IsNonNegativeXp, ">= 0");
+        _xpMultipliers[tier] = GetConfigValue<float>(XpKeys[tier]);
     }
 
     SetConfigValue<std::string>(WorldPartyScalingConfigKey::ExcludedCreatureEntries,
@@ -742,6 +834,12 @@ float WorldPartyScalingConfig::DamageMultiplier(uint32 groupSize) const
     return _damageMultipliers[index];
 }
 
+float WorldPartyScalingConfig::XpMultiplier(uint32 groupSize) const
+{
+    uint32 const index = std::clamp<uint32>(groupSize, 1, MaxGroupSize) - 1;
+    return _xpMultipliers[index];
+}
+
 bool WorldPartyScalingConfig::IsEntryExcluded(uint32 entry) const
 {
     return _excludedEntries.contains(entry);
@@ -784,13 +882,17 @@ public:
 
         LOG_INFO("module",
             "mod-world-party-scaling: enabled (open world only); health tiers "
-            "{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}, damage tiers {:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}",
+            "{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}, damage tiers {:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}, "
+            "xp tiers {:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}",
             g_WorldPartyScalingConfig.HealthMultiplier(1), g_WorldPartyScalingConfig.HealthMultiplier(2),
             g_WorldPartyScalingConfig.HealthMultiplier(3), g_WorldPartyScalingConfig.HealthMultiplier(4),
             g_WorldPartyScalingConfig.HealthMultiplier(5), g_WorldPartyScalingConfig.HealthMultiplier(6),
             g_WorldPartyScalingConfig.DamageMultiplier(1), g_WorldPartyScalingConfig.DamageMultiplier(2),
             g_WorldPartyScalingConfig.DamageMultiplier(3), g_WorldPartyScalingConfig.DamageMultiplier(4),
-            g_WorldPartyScalingConfig.DamageMultiplier(5), g_WorldPartyScalingConfig.DamageMultiplier(6));
+            g_WorldPartyScalingConfig.DamageMultiplier(5), g_WorldPartyScalingConfig.DamageMultiplier(6),
+            g_WorldPartyScalingConfig.XpMultiplier(1), g_WorldPartyScalingConfig.XpMultiplier(2),
+            g_WorldPartyScalingConfig.XpMultiplier(3), g_WorldPartyScalingConfig.XpMultiplier(4),
+            g_WorldPartyScalingConfig.XpMultiplier(5), g_WorldPartyScalingConfig.XpMultiplier(6));
     }
 };
 
@@ -853,6 +955,20 @@ public:
         WorldPartyScalingMgr::Instance().ModifyPeriodicDamageAurasTick(target, attacker, damage, spellInfo);
     }
 };
+
+class WorldPartyScalingPlayerScript final : public PlayerScript
+{
+public:
+    WorldPartyScalingPlayerScript()
+        : PlayerScript("WorldPartyScalingPlayerScript", { PLAYERHOOK_ON_GIVE_EXP })
+    {
+    }
+
+    void OnPlayerGiveXP(Player* player, uint32& amount, Unit* victim, uint8 xpSource) override
+    {
+        WorldPartyScalingMgr::Instance().OnPlayerGiveXP(player, amount, victim, xpSource);
+    }
+};
 }
 
 void AddWorldPartyScalingScripts()
@@ -860,4 +976,5 @@ void AddWorldPartyScalingScripts()
     new WorldPartyScalingWorldScript();
     new WorldPartyScalingAllCreatureScript();
     new WorldPartyScalingUnitScript();
+    new WorldPartyScalingPlayerScript();
 }

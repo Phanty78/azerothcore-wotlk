@@ -1,9 +1,9 @@
 # World Party Scaling
 
 `mod-world-party-scaling` is an AzerothCore WotLK module that scales open-world creatures to the size of
-the online party that engages them. A creature pulled by a group of six receives the tier 6 health and
-damage coefficients; with the default coefficients, a solo pull uses tier 1 (1.00) and therefore the
-creature's reference (rate-free) statistics.
+the online party that engages them. A creature pulled by a group of six receives the tier 6 health,
+damage and kill-XP coefficients; with the default coefficients, a solo pull uses tier 1 (1.00) and
+therefore the creature's reference (rate-free) statistics and unmodified kill XP.
 
 The module is server-side only. It needs no client addon, no SQL, and no database table, and it does not
 edit creature templates or DBC data.
@@ -17,13 +17,15 @@ and compatibility notes are in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
   battleground and arena maps are explicitly rejected as well.
 - **Instances untouched.** Dungeons and raids keep every rate, mechanic and script they have today.
 - **Battlegrounds and arenas untouched.** Their creatures and players are never modified.
+- **Kill XP scope.** Only kill XP from a creature the module is actively scaling is adjusted. Quest,
+  exploration, battleground and instance experience are not affected.
 - **AutoBalance-compatible by map gating.** If AutoBalance (or another instance difficulty module) is
   installed for dungeons and raids, it keeps ownership of instances while this module owns the open
   world. The module's map test prevents it from touching any instance creature, so the two do not
   overlap when AutoBalance is limited to instances, which is its intended use.
 - **No global configuration changes.** `worldserver.conf`, `conf/dist/env.ac`, the database and other
-  modules are not modified. Every effect is applied at runtime to one creature and reverted when the
-  fight ends.
+  modules are not modified. Every effect is applied at runtime to one creature or one reward event;
+  health and damage changes are reverted when the fight ends.
 
 ## Group counting
 
@@ -39,8 +41,9 @@ The group size is resolved from the player who owns the victim at the moment com
 - Pets, guardians, totems and summons resolve to their owner through
   `GetCharmerOrOwnerPlayerOrPlayerItself()`. The owner's group is counted. A creature with no player
   owner is not scaled, and a summon is never scaled itself even when its owner's group is counted.
-- The first valid engagement decides the tier for the whole fight. If a solo player pulls a creature
-  and a full group arrives afterwards, the creature keeps the solo tier until the fight ends.
+- The first valid engagement decides the tier for the whole fight. The same tier supplies the health,
+  damage and kill-XP coefficients. If a solo player pulls a creature and a full group arrives
+  afterwards, the creature keeps the solo tier until the fight ends.
 
 ## Combat lifecycle
 
@@ -49,14 +52,16 @@ The group size is resolved from the player who owns the victim at the moment com
    pet, guardian, totem, summon, controlled or charmed unit, not a guard, civilian or critter, not
    non-attackable or non-selectable, not evading, not friendly to the engaging player, and not excluded
    by entry, map or zone.
-2. **Coefficients captured once.** The online group size selects a tier. Health and damage coefficients,
-   the pre-engagement health base flat modifier, the reference health and the current native rates are
-   stored. The scaled base is applied, `UpdateMaxHealth()` composes auras, and the pre-engagement
-   health percentage is reapplied.
+2. **Tier and coefficients captured once.** The online group size selects a tier. Health and damage
+   coefficients, the tier, the pre-engagement health base flat modifier, the reference health and the
+   current native rates are stored. The scaled base is applied, `UpdateMaxHealth()` composes auras, and
+   the pre-engagement health percentage is reapplied. The stored tier also selects the XP coefficient
+   when a kill is rewarded.
 3. **Frozen for the fight.** The stored state is keyed by map ID, instance ID and creature GUID;
    `ObjectGuid` counters are map-scoped, so all three are required to avoid aliasing. Later entrants,
    group changes, members leaving or a second group engaging do not change the coefficients of an
-   ongoing fight: the first valid engagement keeps the difficulty for the whole fight.
+   ongoing fight: the first valid engagement keeps the difficulty and the kill-XP tier for the whole
+   fight.
 4. **Reset on death, respawn or full out-of-combat.** `OnUnitExitCombat` and `OnUnitDeath` restore the
    stored health base flat modifier and call `UpdateMaxHealth()`, which recomposes auras. The current
    health percentage is sampled and reapplied (a dead creature stays at zero), the state is removed and
@@ -90,13 +95,21 @@ The group size is resolved from the player who owns the victim at the moment com
   `SPELL_AURA_PERIODIC_HEALTH_FUNNEL`; ambiguous spells are skipped. The factor is
   `Damage / native spell rate`, or `Damage` alone for ignore-caster spells. The hook runs before the
   spell bonus step, so the result is correct once that step completes.
+- **Kill experience.** For a creature the module is scaling, the tier's `XP` coefficient is the net
+  total kill-XP multiplier for the party. It replaces the core party-size XP bonus
+  (`Acore::XP::xp_in_group_rate`) instead of stacking on it: the module divides that bonus back out
+  for each member before applying the coefficient. The core still splits the resulting XP among the
+  eligible group members in reward range, so the coefficient changes the total awarded, not who
+  receives a share. Only `XPSOURCE_KILL` on a scaled creature is affected; a value of `0` disables
+  kill XP for that tier.
 
 The native `Rate.Creature.*` values are **replaced, not multiplied**. A creature managed by this module
-does not receive the global open-world rate on top of the group coefficient.
+does not receive the global open-world rate on top of the group coefficient. Kill XP follows the same
+rule: the tier coefficient replaces the core party-size XP bonus rather than adding to it.
 
 ## Unchanged
 
-- Experience, loot, drop rates and quest rewards.
+- Loot, drop rates and quest rewards.
 - Creature level, armor, resistances and damage schools.
 - Healing, absorbs and friendly abilities.
 - Special abilities and scripted mechanics, including their damage unless it goes through the melee,
@@ -116,24 +129,36 @@ out-of-range entries are ignored.
 | `WorldPartyScaling.Enable` | `1` | Master switch. `0` disables scaling and new engagements. |
 | `WorldPartyScaling.Group1.Health` | `1.00` | Health coefficient for 1 player. |
 | `WorldPartyScaling.Group1.Damage` | `1.00` | Damage coefficient for 1 player. |
+| `WorldPartyScaling.Group1.XP` | `1.00` | Net kill-XP multiplier for 1 player; replaces the core party-size bonus. |
 | `WorldPartyScaling.Group2.Health` | `1.70` | Health coefficient for 2 players. |
 | `WorldPartyScaling.Group2.Damage` | `1.35` | Damage coefficient for 2 players. |
+| `WorldPartyScaling.Group2.XP` | `1.10` | Net kill-XP multiplier for 2 players; replaces the core party-size bonus. |
 | `WorldPartyScaling.Group3.Health` | `2.50` | Health coefficient for 3 players. |
 | `WorldPartyScaling.Group3.Damage` | `1.50` | Damage coefficient for 3 players. |
+| `WorldPartyScaling.Group3.XP` | `1.20` | Net kill-XP multiplier for 3 players; replaces the core party-size bonus. |
 | `WorldPartyScaling.Group4.Health` | `3.30` | Health coefficient for 4 players. |
 | `WorldPartyScaling.Group4.Damage` | `1.65` | Damage coefficient for 4 players. |
+| `WorldPartyScaling.Group4.XP` | `1.30` | Net kill-XP multiplier for 4 players; replaces the core party-size bonus. |
 | `WorldPartyScaling.Group5.Health` | `4.20` | Health coefficient for 5 players. |
 | `WorldPartyScaling.Group5.Damage` | `1.80` | Damage coefficient for 5 players. |
+| `WorldPartyScaling.Group5.XP` | `1.40` | Net kill-XP multiplier for 5 players; replaces the core party-size bonus. |
 | `WorldPartyScaling.Group6.Health` | `5.20` | Health coefficient for 6 or more players. |
 | `WorldPartyScaling.Group6.Damage` | `1.95` | Damage coefficient for 6 or more players. |
+| `WorldPartyScaling.Group6.XP` | `1.50` | Net kill-XP multiplier for 6 or more players; replaces the core party-size bonus. |
 | `WorldPartyScaling.EnableDebug` | `0` | Emit one diagnostic line when scaling starts and when it is restored. |
 | `WorldPartyScaling.ExcludedCreatureEntries` | `""` | Creature template entries that are never scaled. |
 | `WorldPartyScaling.ExcludedMaps` | `""` | Map IDs that are never scaled. |
 | `WorldPartyScaling.ExcludedZones` | `""` | Zone IDs that are never scaled, using the creature's current zone. |
 
 Health coefficients must be finite and greater than zero. Damage coefficients must be finite and
-greater than or equal to zero; `0` reduces each damaging hit to the 1-point floor. Invalid values fall
+greater than or equal to zero; `0` reduces each damaging hit to the 1-point floor. XP coefficients must
+be finite and greater than or equal to zero; `0` disables kill XP for that tier. Invalid values fall
 back to the listed default and an error is written to the log.
+
+The XP coefficients are net party totals. For a creature managed by the module, the core party-size XP
+bonus is divided back out before the tier coefficient is applied, so tier 2 at `1.10` awards the party
+10% more total kill XP than a solo kill of the same creature, not 10% on top of the core group bonus.
+The core still divides the resulting XP among the eligible group members.
 
 There is no user-facing coefficient ceiling. Internally, the scaled health base is capped at
 `1,073,741,824` before `UpdateMaxHealth()` composes active modifiers, and scaled damage is capped at
@@ -141,10 +166,10 @@ There is no user-facing coefficient ceiling. Internally, the scaled health base 
 configurations and stop the core's critical-hit doubling from overflowing; ordinary values are
 unaffected.
 
-The coefficients are experimental. Adjust them to the desired pace.
-Because they apply to reference statistics and replace the native open-world rates, changing
-`Rate.Creature.*` in `worldserver.conf` or `conf/dist/env.ac` does not change the result for a scaled
-creature.
+The health, damage and XP coefficients are experimental. Adjust them to the desired pace.
+Because the health and damage coefficients apply to reference statistics and replace the native
+open-world rates, changing `Rate.Creature.*` in `worldserver.conf` or `conf/dist/env.ac` does not
+change the result for a scaled creature.
 
 ## Installation
 
@@ -222,8 +247,8 @@ Using modules configuration:
 ```
 
 The module also writes an info line through the `module` logger. When it is enabled, the line begins
-with `mod-world-party-scaling: enabled (open world only);` and then reports the six health tiers and
-six damage tiers currently loaded. When it is disabled, the line is exactly
+with `mod-world-party-scaling: enabled (open world only);` and then reports the six health tiers, six
+damage tiers and six XP tiers currently loaded. When it is disabled, the line is exactly
 `mod-world-party-scaling: disabled`.
 
 With Docker:
@@ -256,8 +281,10 @@ with the group tier and coefficients.
   needed.
 - A reload with `WorldPartyScaling.Enable = 0` immediately restores all creatures currently scaled and
   clears the module state.
-- Changing coefficients or exclusions affects new engagements. A fight already in progress keeps the
-  coefficients frozen at its start, unless scaling was disabled and all active fights were restored.
+- Changing health or damage coefficients or exclusions affects new engagements; a fight already in
+  progress keeps its stored tier and its captured health and damage coefficients. The XP coefficient
+  for a frozen tier is read when the kill is rewarded, so an XP change also applies to kills rewarded
+  after the reload. Disabling scaling restores all active fights.
 - The summary line is written again after a reload, with the new values.
 
 ### Smoke check
@@ -309,7 +336,7 @@ everything else, including every instance, the rates are unchanged:
 
 | Context | Behaviour |
 | --- | --- |
-| Open world, scaled creature | Tier coefficient replaces the native health, melee and spell rates. |
+| Open world, scaled creature | Tier coefficients replace the native health, melee and spell rates; the tier XP coefficient replaces the core party-size XP bonus. |
 | Open world, excluded creature | Native rates, exactly as without the module. |
 | Dungeon or raid | Native rates and all existing instance behaviour, including AutoBalance if installed. |
 | Battleground or arena | Untouched. |
@@ -367,12 +394,14 @@ and rebuilding leaves no trace: no SQL migration, no saved variables and no glob
 - **Special periodic ticks are not scaled.** Only standard `SPELL_AURA_PERIODIC_DAMAGE` ticks on
   unambiguous spells are affected. Percent-health ticks, leech ticks, health funnels, periodic heals,
   observed-health ticks and spells that combine a damage tick with any of those effects are left alone.
-- **First engagement wins.** Reinforcements cannot raise the difficulty of an ongoing fight.
+- **First engagement wins.** Reinforcements cannot raise the difficulty or the kill-XP multiplier of an
+  ongoing fight.
 - **Exclusions are evaluated at engagement.** Adding an entry, map or zone to an exclusion list does
   not unscale a creature already fighting; it applies to the next engagement.
 - **Open world only.** This is not a dungeon or raid difficulty system, and it does not change
-  mechanics, abilities, spawns or rewards.
-- **Tuning is experimental.** The shipped coefficients are a starting point, not a balance guarantee.
+  mechanics, abilities or spawns.
+- **Tuning is experimental.** The shipped health, damage and XP coefficients are a starting point, not
+  a balance guarantee.
 
 ## Test results
 

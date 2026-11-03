@@ -95,8 +95,8 @@ A loaded, enabled module writes a line beginning with:
 mod-world-party-scaling: enabled (open world only);
 ```
 
-followed by the six health tiers and six damage tiers currently loaded. A loaded, disabled module
-writes exactly:
+followed by the six health tiers, six damage tiers and six XP tiers currently loaded. A loaded,
+disabled module writes exactly:
 
 ```text
 mod-world-party-scaling: disabled
@@ -198,8 +198,9 @@ engagements are not scaled. A worldserver restart has the same effect.
 1. Set `WorldPartyScaling.Enable = 1`.
 2. Run `.reload config` or `reload config`.
 
-The module summary line is written again with the current coefficients. Changes to the tier
-coefficients and exclusion lists also take effect through the same reload; no key requires a restart.
+The module summary line is written again with the current coefficients. Changes to the health, damage
+and XP tier coefficients and to the exclusion lists also take effect through the same reload; no key
+requires a restart.
 
 ### Inspect debug output
 
